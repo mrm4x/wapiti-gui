@@ -2,6 +2,7 @@
 server/node_modules/
 server/.env
 server/package-lock.json
+server/scans/
 
 # Angular
 gui/wapiti-gui/node_modules/
