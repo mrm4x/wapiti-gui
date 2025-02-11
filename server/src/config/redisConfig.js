@@ -1,16 +1,32 @@
-const { Queue } = require('bullmq');
-const Redis = require('ioredis');
-require('dotenv').config();
+const mongoose = require('mongoose');
+const BeeQueue = require('bee-queue');
+const dotenv = require('dotenv');
+const logger = require('../utils/logger');
 
-// Create Redis connection
-const redisConnection = new Redis({
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: process.env.REDIS_PORT || 6379,
-  maxRetriesPerRequest: null,  // Required for BullMQ 5.x
-  enableReadyCheck: false,     // Prevents connection issues
+dotenv.config();
+
+logger.info("🔧 Initializing Redis connection for Bee-Queue...");
+
+const queueOptions = {
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+  },
+  removeOnSuccess: true,
+  isWorker: true,
+};
+
+const scanQueue = new BeeQueue('scanQueue', queueOptions);
+
+logger.info(`📌 Redis Queue "scanQueue" initialized with Bee-Queue.`);
+
+// Ensure MongoDB is connected before processing jobs
+mongoose.connection.once('open', () => {
+  logger.info("✅ MongoDB Connection Established.");
 });
 
-// Create the scan queue
-const scanQueue = new Queue('scanQueue', { connection: redisConnection });
+mongoose.connection.on('error', (err) => {
+  logger.error(`❌ MongoDB Connection Error: ${err.message}`);
+});
 
-module.exports = { scanQueue, redisConnection };
+module.exports = { scanQueue };
