@@ -11,18 +11,22 @@ exports.startScan = async (req, res) => {
   logger.info(`📌 Richiesta di scansione ricevuta per: ${target}`);
 
   try {
-    const job = await scanQueue.add('scanJob', { target });
+    // Verifica se Redis è disponibile prima di aggiungere il job
+    if (!scanQueue.client.status || scanQueue.client.status !== 'ready') {
+      throw new Error('Redis non disponibile');
+    }
+
+    const job = await scanQueue.createJob({ target }).save();
 
     if (!job) {
       throw new Error('❌ Errore: il job non è stato creato');
     }
 
     logger.info(`✅ Job aggiunto alla coda con ID: ${job.id}`);
-
     res.json({ message: 'Scansione avviata', scanId: job.id });
   } catch (error) {
     logger.error(`❌ Errore nell'aggiungere il job alla coda: ${error.message}`);
-    res.status(500).json({ error: 'Errore interno nel server' });
+    res.status(500).json({ error: `Errore interno nel server: ${error.message}` });
   }
 };
 

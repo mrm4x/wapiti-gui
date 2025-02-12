@@ -13,6 +13,10 @@ exports.startSession = async (req, res) => {
 
     logger.info(`📌 Received scan request: userId=${userId}, targetUrl=${targetUrl}`);
 
+    if (!mongoose.connection.readyState) {
+      throw new Error('MongoDB is not connected');
+    }
+
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       logger.error(`❌ Invalid userId format: ${userId}`);
       return res.status(400).json({ error: 'Invalid userId format' });
@@ -38,24 +42,19 @@ exports.startSession = async (req, res) => {
 
     logger.info(`📌 Creating job in Bee-Queue: sessionId=${sessionId}, targetUrl=${targetUrl}`);
 
-    // Add job to Bee-Queue
     const job = scanQueue.createJob({ sessionId, targetUrl });
-
-    // Ensure jobs stay in the queue until processed
     job.setId(sessionId);
     job.retries(3);
-    job.save((err, savedJob) => {
-      if (err) {
-        logger.error(`❌ Failed to add job to Bee-Queue: ${err.message}`);
-      } else {
-        logger.info(`✅ Job successfully added to Bee-Queue: ID=${savedJob.id}, Data=${JSON.stringify(savedJob.data)}`);
-      }
+    job.save().then(savedJob => {
+      logger.info(`✅ Job successfully added to Bee-Queue: ID=${savedJob.id}, Data=${JSON.stringify(savedJob.data)}`);
+    }).catch(err => {
+      logger.error(`❌ Failed to add job to Bee-Queue: ${err.message}`);
     });
 
     res.json({ message: 'Session started', sessionId });
   } catch (error) {
     logger.error(`❌ Error in startSession: ${error.message}`);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: `Internal server error: ${error.message}` });
   }
 };
 
@@ -99,7 +98,9 @@ exports.provideInput = async (req, res) => {
     const { sessionId, userInput } = req.body;
     const session = await Session.findOne({ sessionId });
 
-    if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
 
     if (session.status !== 'waiting_for_input') {
       return res.status(400).json({ error: 'Session is not waiting for input' });
@@ -108,10 +109,144 @@ exports.provideInput = async (req, res) => {
     session.expectedInput = userInput;
     session.status = 'running';
     await session.save();
+    logger.info(`✅ Input received for session ${sessionId}, resuming scan`);
+
+    const job = scanQueue.createJob({ sessionId, userInput });
+    job.setId(sessionId);
+    job.retries(2);
+    await job.save();
 
     res.json({ message: 'Input received, resuming scan' });
   } catch (error) {
     logger.error(`❌ Error in provideInput: ${error.message}`);
+    res.status(500).json({ error: `Internal server error: ${error.message}` });
+  }
+};
+
+/**
+ * Retrieve all sessions in out-of-time state.
+ */
+exports.getOutOfTimeSessions = async (req, res) => {
+  console.log('test'); 
+
+  try {
+    const sessions = await Session.find({ status: 'out-of-time' });
+
+    if (!sessions || sessions.length === 0) {
+      return res.json([]);
+    }
+
+    res.json(sessions);
+  } catch (error) {
+    logger.error(`❌ Error fetching out-of-time sessions: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+/**
+ * Update the session status
+ */
+exports.updateSessionStatus = async (req, res) => {
+  try {
+    const { sessionId, newStatus } = req.body;
+    const validStatuses = ['running', 'failed', 'waiting']; // 🔹 Stati validi
+
+    if (!validStatuses.includes(newStatus)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const session = await Session.findOne({ sessionId });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.status !== 'out-of-time') {
+      return res.status(400).json({ error: `Session ${sessionId} is not in out-of-time state` });
+    }
+
+    session.status = newStatus;
+    await session.save();
+    logger.info(`🔄 Session ${sessionId} status updated to ${newStatus}`);
+    res.json({ message: `Session ${sessionId} updated to ${newStatus}` });
+
+  } catch (error) {
+    logger.error(`❌ Error updating session status: ${error.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Resume paused jobs when user input is received.
+ */
+exports.resumePausedTasks = async () => {
+  try {
+    logger.info("🔍 Verifica dei task in attesa di input...");
+
+    const totalWaitingSessions = await Session.countDocuments({ status: "waiting-for-input" });
+
+    if (totalWaitingSessions === 0) {
+      logger.info("✅ Nessun task in attesa di input da riprendere.");
+      return;
+    }
+
+    const waitingSessionsWithInput = await Session.find({ status: "waiting-for-input", expectedInput: { $ne: null } });
+    const waitingSessionsWithoutInput = await Session.find({ status: "waiting-for-input", expectedInput: null });
+
+    if (waitingSessionsWithoutInput.length > 0) {
+      logger.warn(`⚠️ ${waitingSessionsWithoutInput.length} task sono bloccati in 'waiting-for-input' senza input.`);
+      for (let session of waitingSessionsWithoutInput) {
+        logger.warn(`⚠️ Sessione bloccata: ${session.sessionId} (nessun input ricevuto)`);
+      }
+    }
+
+    if (waitingSessionsWithInput.length === 0) {
+      logger.info("✅ Nessun task può essere ripreso perché tutti stanno ancora aspettando un input.");
+      return;
+    }
+
+    logger.info(`🔄 Ripristino di ${waitingSessionsWithInput.length} task in attesa di input con risposta ricevuta.`);
+
+    for (let session of waitingSessionsWithInput) {
+      logger.info(`🔄 Riprendendo sessione: ${session.sessionId} con input ricevuto: ${session.expectedInput}`);
+
+      session.status = "running";
+      await session.save();
+
+      // Re-add job to the queue
+      await scanQueue.add('scanJob', { sessionId: session.sessionId, targetUrl: session.targetUrl });
+    }
+
+    logger.info("✅ Tutti i task in attesa di input con risposta ricevuta sono stati ripresi.");
+  } catch (error) {
+    logger.error(`❌ Errore nel ripristino dei task in attesa di input: ${error.message}`);
+  }
+};
+
+/**
+ * Get sessions by status
+ */
+exports.getSessionsByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+
+    // Verifica che lo stato sia valido
+    const validStatuses = ['pending', 'running', 'waiting', 'waiting-for-input', 'completed', 'failed', 'out-of-time'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Stato non valido' });
+    }
+
+    // Recupera le sessioni con lo stato specificato
+    const sessions = await Session.find({ status });
+
+    if (sessions.length === 0) {
+      return res.status(404).json({ message: 'Nessuna sessione trovata con questo stato' });
+    }
+
+    res.json(sessions);
+  } catch (error) {
+    logger.error(`❌ Errore nel recupero delle sessioni per stato: ${error.message}`);
+    res.status(500).json({ error: 'Errore interno del server' });
+  }
+};
+

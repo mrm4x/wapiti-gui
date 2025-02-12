@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('../models/userModel');
+const logger = require('../utils/logger');
 
 /**
  * Create a new user
@@ -22,7 +23,7 @@ exports.createUser = async (req, res) => {
 
     res.status(201).json({ message: 'User created', user });
   } catch (error) {
-    console.error(`❌ Error in createUser: ${error.message}`);
+    logger.error(`❌ Error in createUser: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -35,7 +36,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await User.find();
     res.json(users);
   } catch (error) {
-    console.error(`❌ Error in getAllUsers: ${error.message}`);
+    logger.error(`❌ Error in getAllUsers: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -58,7 +59,7 @@ exports.getUserById = async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    console.error(`❌ Error in getUserById: ${error.message}`);
+    logger.error(`❌ Error in getUserById: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -87,7 +88,7 @@ exports.updateUser = async (req, res) => {
 
     res.json({ message: 'User updated', user: updatedUser });
   } catch (error) {
-    console.error(`❌ Error in updateUser: ${error.message}`);
+    logger.error(`❌ Error in updateUser: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -110,7 +111,7 @@ exports.deleteUser = async (req, res) => {
 
     res.json({ message: 'User deleted' });
   } catch (error) {
-    console.error(`❌ Error in deleteUser: ${error.message}`);
+    logger.error(`❌ Error in deleteUser: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
