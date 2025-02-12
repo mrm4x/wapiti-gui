@@ -15,9 +15,6 @@ app.use(helmet());
 app.use(express.json());
 
 // API Routes
-const scanRoutes = require('./routes/scanRoutes');
-app.use('/api/scans', scanRoutes);
-
 const sessionRoutes = require('./routes/sessionRoutes');
 app.use('/api', sessionRoutes);
 
