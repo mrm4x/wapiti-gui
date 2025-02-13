@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const Session = require('../models/sessionModel');
 const User = require('../models/userModel');
-const { scanQueue } = require('../config/redisConfig');
 const logger = require('../utils/logger');
+//const { scanQueue } = require('../config/redisConfig');
 
 /**
  * Start a new session and enqueue the scan job.
@@ -40,8 +40,9 @@ exports.startSession = async (req, res) => {
     await session.save();
     logger.info(`✅ Session created in MongoDB: ${sessionId}`);
 
+/*    
     logger.info(`📌 Creating job in Bee-Queue: sessionId=${sessionId}, targetUrl=${targetUrl}`);
-
+    
     const job = scanQueue.createJob({ sessionId, targetUrl });
     job.setId(sessionId);
     job.retries(3);
@@ -50,6 +51,7 @@ exports.startSession = async (req, res) => {
     }).catch(err => {
       logger.error(`❌ Failed to add job to Bee-Queue: ${err.message}`);
     });
+*/
 
     res.json({ message: 'Session started', sessionId });
   } catch (error) {
@@ -102,19 +104,25 @@ exports.provideInput = async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    if (session.status !== 'waiting_for_input') {
+    if (session.status !== 'waiting-for-input') {
       return res.status(400).json({ error: 'Session is not waiting for input' });
     }
 
     session.expectedInput = userInput;
     session.status = 'running';
+    
+    // 🔹 Memorizza l'input ricevuto dallo user nello stdoutHistory
+    session.stdoutHistory.push(`User input received: ${userInput}`);
+    
     await session.save();
     logger.info(`✅ Input received for session ${sessionId}, resuming scan`);
 
+/*    
     const job = scanQueue.createJob({ sessionId, userInput });
     job.setId(sessionId);
     job.retries(2);
     await job.save();
+*/
 
     res.json({ message: 'Input received, resuming scan' });
   } catch (error) {
@@ -124,32 +132,12 @@ exports.provideInput = async (req, res) => {
 };
 
 /**
- * Retrieve all sessions in out-of-time state.
- */
-exports.getOutOfTimeSessions = async (req, res) => {
-  console.log('test'); 
-
-  try {
-    const sessions = await Session.find({ status: 'out-of-time' });
-
-    if (!sessions || sessions.length === 0) {
-      return res.json([]);
-    }
-
-    res.json(sessions);
-  } catch (error) {
-    logger.error(`❌ Error fetching out-of-time sessions: ${error.message}`);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-/**
  * Update the session status
  */
 exports.updateSessionStatus = async (req, res) => {
   try {
     const { sessionId, newStatus } = req.body;
-    const validStatuses = ['running', 'failed', 'waiting']; // 🔹 Stati validi
+    const validStatuses = ['running', 'failed', 'waiting', 'completed', 'waiting-for-input', 'pending', 'out-of-time']; // 🔹 Stati validi
 
     if (!validStatuses.includes(newStatus)) {
       return res.status(400).json({ error: 'Invalid status' });
@@ -159,10 +147,6 @@ exports.updateSessionStatus = async (req, res) => {
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
-    }
-
-    if (session.status !== 'out-of-time') {
-      return res.status(400).json({ error: `Session ${sessionId} is not in out-of-time state` });
     }
 
     session.status = newStatus;
@@ -239,9 +223,11 @@ exports.getSessionsByStatus = async (req, res) => {
     // Recupera le sessioni con lo stato specificato
     const sessions = await Session.find({ status });
 
+    /*
     if (sessions.length === 0) {
       return res.status(404).json({ message: 'Nessuna sessione trovata con questo stato' });
     }
+    */
 
     res.json(sessions);
   } catch (error) {
@@ -250,3 +236,45 @@ exports.getSessionsByStatus = async (req, res) => {
   }
 };
 
+/**
+ * Retrieve session stdout history.
+ */
+exports.getSessionStdoutHistory = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = await Session.findOne({ sessionId });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ stdoutHistory: session.stdoutHistory });
+  } catch (error) {
+    logger.error(`❌ Error retrieving stdout history: ${error.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Delete a session by sessionId.
+ */
+exports.deleteSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await Session.findOne({ sessionId });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    await Session.deleteOne({ sessionId });
+
+    logger.info(`🗑️ Session ${sessionId} deleted successfully.`);
+    res.json({ message: `Session ${sessionId} deleted successfully.` });
+
+  } catch (error) {
+    logger.error(`❌ Error deleting session ${req.params.sessionId}: ${error.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

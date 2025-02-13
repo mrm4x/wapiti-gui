@@ -1,89 +1,108 @@
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const mongoose = require('mongoose');
+const stripAnsi = require('strip-ansi');
 const Session = require('../models/sessionModel');
 const logger = require('../utils/logger');
 
-const SCAN_TIMEOUT = parseInt(process.env.SCAN_TIMEOUT, 10) || 86400; // Default: 24h (86.400s)
+require('dotenv').config();
+
+const SCAN_DIR = process.env.SCAN_DIR || 'scans';
+const LOG_DIR = path.join(__dirname, '../../logs');
+const WAPITI_PATH = '/usr/bin/wapiti';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wapiti-db';
+
+// Assicurati che la directory di scansione esista
+if (!fs.existsSync(SCAN_DIR)) {
+    fs.mkdirSync(SCAN_DIR, { recursive: true });
+    logger.info(`📂 Created scans directory: ${SCAN_DIR}`);
+}
+
+// Assicurati che la directory dei log esista
+if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    logger.info(`📂 Created logs directory: ${LOG_DIR}`);
+}
+
+// Connessione a MongoDB se non è attiva
+if (mongoose.connection.readyState === 0) {
+    mongoose.connect(MONGO_URI, {})
+        .then(() => logger.info("✅ MongoDB connected successfully from Worker"))
+        .catch(err => logger.error(`❌ MongoDB connection error: ${err.message}`));
+}
 
 exports.executeScan = async (sessionId, targetUrl) => {
-  return new Promise(async (resolve) => {
-    logger.info(`🚀 Starting scan for session ${sessionId}`);
+    return new Promise(async (resolve) => {
+        logger.info(`🚀 [executeScan] Starting scan for session ${sessionId}`);
 
-    const session = await Session.findOne({ sessionId });
-
-    if (!session) {
-      logger.error(`❌ Session ${sessionId} not found.`);
-      return resolve();
-    }
-
-    session.status = 'running';
-    session.executionTime = null;
-    session.scanResults = [];
-    await session.save();
-
-    const startTime = Date.now(); // 🔹 Avvia il conteggio del tempo
-
-    const wapitiProcess = spawn('wapiti', ['-u', targetUrl, '-f', 'json']);
-
-    // Timeout per i processi che non vanno in waiting-for-input
-    const timeout = setTimeout(async () => {
-      if (session.status === 'running') {
-        session.status = 'out-of-time';
-        session.executionTime = Date.now() - startTime;
-        session.errorMessage = 'Timeout exceeded (scan paused for review)';
-        await session.save();
-        logger.warn(`⏳ Scan ${sessionId} moved to out-of-time after ${SCAN_TIMEOUT} seconds.`);
-        resolve();
-      }
-    }, SCAN_TIMEOUT * 1000);
-
-    let scanResults = [];
-
-    wapitiProcess.stdout.on('data', async (data) => {
-      const output = data.toString();
-      logger.info(`📤 Wapiti Output [${sessionId}]: ${output}`);
-
-      // Verifica se l'output contiene richieste di input
-      if (output.includes('?')) {
-        session.status = 'waiting-for-input';
-        session.expectedInput = output.trim();
-        session.executionTime = Date.now() - startTime;
-        await session.save();
-        logger.info(`⏳ Session ${sessionId} is now waiting for input.`);
-        clearTimeout(timeout);
-        return resolve();
-      }
-
-      // Prova a interpretare l'output come JSON per estrarre i risultati
-      try {
-        const parsedData = JSON.parse(output);
-        if (parsedData.vulnerabilities) {
-          scanResults = parsedData.vulnerabilities.map(vuln => ({
-            type: vuln.type || 'Unknown',
-            severity: vuln.severity || 'Low',
-            url: vuln.url || 'N/A',
-            details: vuln.description || 'No details provided'
-          }));
+        const session = await Session.findOne({ sessionId });
+        if (!session) {
+            logger.error(`❌ [executeScan] Session ${sessionId} not found.`);
+            return resolve();
         }
-      } catch (e) {
-        logger.warn(`⚠️ Non è stato possibile interpretare l'output di Wapiti per session ${sessionId}`);
-      }
-    });
 
-    wapitiProcess.on('close', async (code) => {
-      clearTimeout(timeout);
-      const executionTime = Date.now() - startTime;
-      
-      logger.info(`⏱️ Scan execution time for session ${sessionId}: ${executionTime}ms`);
-      logger.info(`📊 Scan results for session ${sessionId}: ${JSON.stringify(scanResults, null, 2)}`);
-    
-      if (session.status !== 'waiting-for-input' && session.status !== 'out-of-time') {
-        session.status = code === 0 ? 'completed' : 'failed';
-        session.executionTime = executionTime;
-        session.scanResults = scanResults;
+        session.status = 'running';
+        session.executionTime = null;
+        session.stdoutHistory = [];
         await session.save();
-        logger.info(`✅ Scan ${sessionId} completed and results saved.`);
-      }
-      resolve();
-    });    
-  });
+
+        const startTime = Date.now();
+        const outputFilePath = path.join(SCAN_DIR, `session-${sessionId}.json`);
+        const logFilePath = path.join(LOG_DIR, `session-${sessionId}.log`);
+        
+        const logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
+        logger.info(`📄 Logging output to ${logFilePath}`);
+
+        if (!fs.existsSync(WAPITI_PATH)) {
+            logger.error(`❌ [executeScan] Wapiti not found at ${WAPITI_PATH}`);
+            session.status = 'failed';
+            await session.save();
+            return resolve();
+        }
+
+        logger.info(`🚀 [executeScan] Launching Wapiti for session ${sessionId}, target: ${targetUrl}`);
+        const wapitiCmd = ['-u', targetUrl, '-f', 'json', '-o', outputFilePath];
+        const wapitiProcess = spawn(WAPITI_PATH, wapitiCmd, { shell: true });
+
+        wapitiProcess.stdout.on('data', async (data) => {
+            const output = stripAnsi(data.toString());
+            logStream.write(output);
+            session.stdoutHistory.push(output);
+            session.markModified('stdoutHistory');
+            await session.save();
+        });
+
+        wapitiProcess.stderr.on('data', async (data) => {
+            const errorOutput = stripAnsi(data.toString().trim());
+            logStream.write(`ERROR: ${errorOutput}\n`);
+            logger.error(`❌ [executeScan] ${errorOutput}`);
+            session.stdoutHistory.push(`Error: ${errorOutput}`);
+            session.status = 'failed';
+            await session.save();
+        });
+
+        wapitiProcess.on('close', async (code) => {
+            logger.info(`🛑 [executeScan] CLOSE EVENT TRIGGERED for session ${sessionId}, exit code: ${code}`);
+            session.executionTime = Date.now() - startTime;
+            session.outputFile = outputFilePath;
+            session.status = code === 0 ? 'completed' : 'failed';
+            await session.save();
+            logStream.end();
+            resolve();
+        });
+
+        wapitiProcess.on('exit', async (code, signal) => {
+            if (code === 0) {
+                logger.info(`✅ [executeScan] Process exited successfully. Code: ${code}`);
+            } else {
+                logger.warn(`⚠️ [executeScan] Process exited unexpectedly. Code: ${code}, Signal: ${signal}`);
+                session.status = 'failed';
+                session.errorMessage = `Process exited unexpectedly with code ${code} and signal ${signal}`;
+                await session.save();
+            }
+            logStream.end();
+            resolve();
+        });
+    });
 };

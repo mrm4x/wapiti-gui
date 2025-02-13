@@ -1,4 +1,3 @@
-const { scanQueue, redisClient } = require('../config/redisConfig');
 const Session = require('../models/sessionModel');
 const dotenv = require('dotenv');
 const logger = require('../utils/logger');
@@ -42,6 +41,7 @@ async function processJob(job) {
 
 async function startWorker(workerId) {
   scanQueue.process(async (job, done) => {
+    logger.info(`🛠 [scanScheduler] Received job: ${JSON.stringify(job.data)}`);
     await processJob(job);
     done();
   });

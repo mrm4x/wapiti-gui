@@ -18,34 +18,20 @@ const sessionSchema = new mongoose.Schema({
     enum: ['pending', 'running', 'waiting', 'waiting-for-input', 'completed', 'failed', 'out-of-time'], 
     default: 'pending' 
   },
-  expectedInput: { type: String, default: null },
+  expectedInput: { type: String, default: null }, // Stores pending input request
   outputFile: { type: String, default: null },
-  executionTime: { type: Number, default: 0 }, // 🔹 Ora il valore è sempre presente
-  scanResults: [{
-    type: { type: String, default: "Unknown" },
-    severity: { type: String, enum: ['Low', 'Medium', 'High'], default: "Low" },
-    url: { type: String, default: "N/A" },
-    details: { type: String, default: "No details provided" }
-  }],
   statusHistory: [{
     status: { type: String },
     timestamp: { type: Date, default: Date.now }
   }],
+  stdoutHistory: { type: [String], default: [] }, // 🔹 Nuovo campo per registrare l'output della scansione
   createdAt: { type: Date, default: Date.now },
 });
 
-// Middleware per salvare la cronologia degli stati e il tempo di esecuzione
+// Middleware per salvare la cronologia degli stati
 sessionSchema.pre('save', function(next) {
   if (this.isModified('status')) {
     this.statusHistory.push({ status: this.status });
-
-    if (this.status === 'running') {
-      this.startTime = Date.now(); // 🔹 Salva l'inizio della scansione
-    }
-
-    if (this.status === 'completed' || this.status === 'failed') {
-      this.executionTime = Date.now() - this.startTime; // 🔹 Calcola il tempo di esecuzione
-    }
   }
   next();
 });

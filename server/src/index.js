@@ -6,6 +6,7 @@ const logger = require('./utils/logger');
 const { spawn } = require('child_process');
 const path = require('path');
 require('./config/mongoConfig'); // Ensure MongoDB is initialized
+const MAX_RESTARTS = process.env.MAX_WORKER_RESTART || 5;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,7 @@ app.use(helmet());
 app.use(express.json());
 
 // API Routes
+
 const sessionRoutes = require('./routes/sessionRoutes');
 app.use('/api', sessionRoutes);
 
@@ -29,8 +31,12 @@ app.use((err, req, res, next) => {
 
 // Funzione per avviare il worker con gestione automatica dei crash
 function startWorker() {
-    logger.info("🔄 Avviando il Worker...");
+    if (restartCount >= MAX_RESTARTS) {
+        logger.error("❌ Worker ha superato il limite di riavvii, fermando il tentativo di restart.");
+        return;
+    }
 
+    logger.info("🔄 Avviando il Worker...");
     const workerProcess = spawn('node', [path.join(__dirname, 'workers', 'workerPool.js')]);
 
     workerProcess.stdout.on('data', (data) => {
@@ -43,11 +49,13 @@ function startWorker() {
 
     workerProcess.on('close', (code) => {
         logger.warn(`⚠️ Worker process exited with code ${code}. Riavvio in corso...`);
-        setTimeout(startWorker, 5000); // Riavvia dopo 5 secondi
+        restartCount++;
+        setTimeout(startWorker, 5000);
     });
 }
 
 // Avvio il worker con gestione automatica dei crash
+let restartCount = 0;
 startWorker();
 
 app.listen(PORT, () => {

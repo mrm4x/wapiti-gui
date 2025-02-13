@@ -1,126 +1,80 @@
-const BeeQueue = require('bee-queue');
 const mongoose = require('mongoose');
-const { scanQueue, redisClient } = require('../config/redisConfig');
 const Session = require('../models/sessionModel');
 const logger = require('../utils/logger');
+const { executeScan } = require('./scanWorker');
 
-logger.info("🔄 Initializing Bee-Queue Worker...");
+logger.info("🔄 Initializing MongoDB-based Worker...");
 
-// Configurazione numero worker da .env
+// Configurazione dei parametri dal file .env
 const WORKER_COUNT = parseInt(process.env.WORKER_COUNT, 10) || 1;
 const MAX_RETRIES = parseInt(process.env.WORKER_MAX_RETRIES, 10) || 3;
 const RETRY_DELAY = 5000; // 5 secondi tra un retry e l'altro
 
 async function ensureMongoConnection() {
-  if (mongoose.connection.readyState !== 1) {
-    logger.warn("⏳ Waiting for MongoDB connection...");
-    await mongoose.connect(process.env.MONGO_URI, {});
-    logger.info("✅ MongoDB is now connected.");
-  }
+    if (mongoose.connection.readyState !== 1) {
+        logger.warn("⏳ Waiting for MongoDB connection...");
+        await mongoose.connect(process.env.MONGO_URI, {});
+        logger.info("✅ MongoDB is now connected.");
+    }
 }
 
-async function addPausedJob(jobId) {
-  try {
-    await redisClient.sadd('pausedJobs', jobId);
-    logger.info(`🔹 Job ${jobId} added to paused jobs list.`);
-  } catch (err) {
-    logger.error(`❌ Error adding job ${jobId} to paused jobs: ${err.message}`);
-  }
+// Funzione per recuperare una sessione in attesa di elaborazione
+async function getPendingSession() {
+    return await Session.findOneAndUpdate(
+        { status: 'pending' },
+        { status: 'running' },
+        { new: true }
+    );
 }
 
-async function getPausedJobs() {
-  try {
-    return await redisClient.smembers('pausedJobs');
-  } catch (err) {
-    logger.error(`❌ Error retrieving paused jobs: ${err.message}`);
-    return [];
-  }
-}
-
-async function resumeNextJob() {
-  const jobIds = await getPausedJobs();
-  if (jobIds.length > 0) {
-    const jobId = jobIds.shift();
-    logger.info(`▶️ Attempting to resume job ${jobId}`);
-
-    scanQueue.getJob(jobId).then(async (job) => {
-      if (job) {
-        await redisClient.srem('pausedJobs', jobId);
-        await job.retry();
-        logger.info(`✅ Job ${jobId} resumed successfully.`);
-      } else {
-        logger.error(`❌ Job ${jobId} not found in queue.`);
-      }
-    }).catch(err => {
-      logger.error(`❌ Error resuming job ${jobId}: ${err.message}`);
-    });
-  }
-}
-
-scanQueue.process(WORKER_COUNT, async (job, done) => {
-  try {
-    logger.info(`🚀 Worker processing job ID: ${job.id}, Session: ${job.data.sessionId}`);
+// Funzione principale del worker
+async function processNextSession() {
     await ensureMongoConnection();
 
-    const session = await Session.findOne({ sessionId: job.data.sessionId });
+    const session = await getPendingSession();
 
     if (!session) {
-      logger.error(`❌ Session not found for job ${job.id}`);
-      return done(new Error("Session not found"));
+        logger.info("⏳ No pending sessions. Worker is idle...");
+        setTimeout(processNextSession, 5000);
+        return;
     }
 
-    session.status = 'running';
-    await session.save();
-    logger.info(`✅ Scan started for session ${session.sessionId}`);
+    logger.info(`🚀 Processing session ${session.sessionId} for target ${session.targetUrl}`);
 
-    let executionTime = 5000 + Math.random() * 5000;
-    
-    setTimeout(async () => {
-      if (Math.random() < 0.5) {
-        session.status = 'waiting-for-input';
+    try {
+        await executeScan(session.sessionId, session.targetUrl);
+
+        // Una volta terminata la scansione, aggiorniamo lo stato correttamente
+        const updatedSession = await Session.findOne({ sessionId: session.sessionId });
+
+        if (!updatedSession) {
+            logger.error(`❌ Session ${session.sessionId} not found after scan execution.`);
+            setTimeout(processNextSession, 1000);
+            return;
+        }
+
+        // Se la sessione era ancora in esecuzione e non ha richiesto input, la impostiamo su "completed"
+        if (updatedSession.status === 'running') {
+            updatedSession.status = 'completed';
+            updatedSession.outputFile = `scans/session-${updatedSession.sessionId}.json`;
+            await updatedSession.save();
+            logger.info(`✅ Scan ${updatedSession.sessionId} completed`);
+        } else {
+            logger.warn(`⚠️ Session ${updatedSession.sessionId} ended with status ${updatedSession.status}`);
+        }
+
+        setTimeout(processNextSession, 1000);
+    } catch (error) {
+        logger.error(`❌ Error processing session ${session.sessionId}: ${error.message}`);
+
+        session.status = 'failed';
         await session.save();
-        await addPausedJob(job.id);
-        logger.warn(`⏸️ Job ${job.id} is paused, waiting for user input.`);
-        resumeNextJob();
-        return;
-      }
 
-      session.status = 'completed';
-      await session.save();
-      logger.info(`✅ Scan ${session.sessionId} completed`);
-      done(null);
-    }, executionTime);
-  } catch (error) {
-    logger.error(`❌ Error processing job ${job.id}: ${error.message}`);
-    done(new Error(`Processing failed: ${error.message}`));
-  }
-});
+        setTimeout(processNextSession, RETRY_DELAY);
+    }
+}
 
-scanQueue.on('error', (err) => {
-  logger.error(`❌ Worker encountered an error: ${err.message}`);
-});
+// Avvia il worker
+processNextSession();
 
-scanQueue.on('stalled', (job) => {
-  logger.warn(`⚠️ Job ${job.id} is stalled!`);
-});
-
-scanQueue.on('failed', async (job, err) => {
-  logger.error(`❌ Job ${job.id} failed: ${err.message}`);
-
-  if (job.options.attemptsMade < MAX_RETRIES) {
-    logger.warn(`🔄 Retrying job ${job.id} in ${RETRY_DELAY / 1000}s...`);
-    setTimeout(async () => {
-      await job.retry();
-      logger.info(`✅ Job ${job.id} retry attempt made.`);
-    }, RETRY_DELAY);
-  } else {
-    logger.error(`❌ Job ${job.id} reached max retry limit.`);
-  }
-});
-
-scanQueue.on('succeeded', (job) => {
-  logger.info(`✅ Job ${job.id} completed successfully`);
-});
-
-// Esportiamo la funzione per poterla usare dall'esterno
-module.exports = { resumeNextJob };
+module.exports = { processNextSession };
