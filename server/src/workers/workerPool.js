@@ -1,13 +1,11 @@
+const cluster = require('cluster');
+const os = require('os');
 const mongoose = require('mongoose');
 const Session = require('../models/sessionModel');
 const logger = require('../utils/logger');
 const { executeScan } = require('./scanWorker');
 
-logger.info("🔄 Initializing MongoDB-based Worker...");
-
-// Configurazione dei parametri dal file .env
-const WORKER_COUNT = parseInt(process.env.WORKER_COUNT, 10) || 1;
-const MAX_RETRIES = parseInt(process.env.WORKER_MAX_RETRIES, 10) || 3;
+const WORKER_COUNT = parseInt(process.env.WORKER_COUNT, 10) || os.cpus().length;
 const RETRY_DELAY = 5000; // 5 secondi tra un retry e l'altro
 
 async function ensureMongoConnection() {
@@ -18,7 +16,7 @@ async function ensureMongoConnection() {
     }
 }
 
-// Funzione per recuperare una sessione in attesa di elaborazione
+// Recupera una sessione in stato 'pending' e la blocca per evitare duplicazioni
 async function getPendingSession() {
     return await Session.findOneAndUpdate(
         { status: 'pending' },
@@ -27,24 +25,23 @@ async function getPendingSession() {
     );
 }
 
-// Funzione principale del worker
+// Funzione principale per elaborare le sessioni
 async function processNextSession() {
-    await ensureMongoConnection();
-
-    const session = await getPendingSession();
-
-    if (!session) {
-        logger.info("⏳ No pending sessions. Worker is idle...");
-        setTimeout(processNextSession, 5000);
-        return;
-    }
-
-    logger.info(`🚀 Processing session ${session.sessionId} for target ${session.targetUrl}`);
-
     try {
+        await ensureMongoConnection();
+
+        const session = await getPendingSession();
+
+        if (!session) {
+            logger.info("⏳ No pending sessions. Worker is idle...");
+            setTimeout(processNextSession, 5000);
+            return;
+        }
+
+        logger.info(`🚀 Worker ${process.pid} processing session ${session.sessionId}`);
+
         await executeScan(session.sessionId, session.targetUrl);
 
-        // Una volta terminata la scansione, aggiorniamo lo stato correttamente
         const updatedSession = await Session.findOne({ sessionId: session.sessionId });
 
         if (!updatedSession) {
@@ -53,7 +50,6 @@ async function processNextSession() {
             return;
         }
 
-        // Se la sessione era ancora in esecuzione e non ha richiesto input, la impostiamo su "completed"
         if (updatedSession.status === 'running') {
             updatedSession.status = 'completed';
             updatedSession.outputFile = `scans/session-${updatedSession.sessionId}.json`;
@@ -65,16 +61,27 @@ async function processNextSession() {
 
         setTimeout(processNextSession, 1000);
     } catch (error) {
-        logger.error(`❌ Error processing session ${session.sessionId}: ${error.message}`);
-
-        session.status = 'failed';
-        await session.save();
-
+        logger.error(`❌ Error processing session: ${error.message}`);
         setTimeout(processNextSession, RETRY_DELAY);
     }
 }
 
-// Avvia il worker
-processNextSession();
+// 🚀 **Gestione dei Worker in parallelo**
+if (cluster.isMaster) {
+    logger.info(`🔄 Master process started. Forking ${WORKER_COUNT} workers...`);
+
+    for (let i = 0; i < WORKER_COUNT; i++) {
+        cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+        logger.warn(`⚠️ Worker ${worker.process.pid} exited. Restarting...`);
+        cluster.fork();
+    });
+
+} else {
+    logger.info(`🚀 Worker ${process.pid} started.`);
+    processNextSession(); // Avvia il worker per processare le sessioni
+}
 
 module.exports = { processNextSession };

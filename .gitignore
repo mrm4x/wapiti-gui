@@ -2,8 +2,8 @@
 server/node_modules/
 server/.env
 server/package-lock.json
-server/scans/
-server/logs/
+server/scans/*
+server/logs/*
 
 # Angular
 gui/wapiti-gui/node_modules/
@@ -19,3 +19,4 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+server/logs/.*.json

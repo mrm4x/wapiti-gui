@@ -9,51 +9,54 @@ const logger = require('../utils/logger');
  */
 exports.startSession = async (req, res) => {
   try {
-    const { userId, targetUrl } = req.body;
+    const { userId, targetUrl, extraParams } = req.body;
 
-    logger.info(`📌 Received scan request: userId=${userId}, targetUrl=${targetUrl}`);
+    logger.info(`📌 Received scan request: userId=${userId}, targetUrl=${targetUrl}, extraParams=${Array.isArray(extraParams) ? extraParams.join(' ') : 'None'}`);
 
+    // Controllo connessione a MongoDB
     if (!mongoose.connection.readyState) {
       throw new Error('MongoDB is not connected');
     }
 
+    // Validazione userId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       logger.error(`❌ Invalid userId format: ${userId}`);
       return res.status(400).json({ error: 'Invalid userId format' });
     }
 
+    // Verifica se l'utente esiste
     const user = await User.findById(userId);
     if (!user) {
       logger.error(`❌ User not found: ${userId}`);
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Generazione ID sessione
     const sessionId = `session-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+    // Normalizza extraParams
+    let parsedExtraParams = [];
+    if (Array.isArray(extraParams)) {
+      parsedExtraParams = extraParams.filter(param => typeof param === 'string' && param.trim().length > 0);
+    }
+
+    // Genera il percorso del log file
+    const logFilePath = `logs/session-${sessionId}.log`;
+
+    // Creazione della sessione con eventuali parametri extra
     const session = new Session({
       user: new mongoose.Types.ObjectId(userId),
       sessionId,
       targetUrl,
       status: 'pending',
+      extraParams: parsedExtraParams, // ✅ Memorizza solo parametri validi
+      logFilePath, // ✅ Memorizza il percorso del file di log
     });
 
     await session.save();
-    logger.info(`✅ Session created in MongoDB: ${sessionId}`);
+    logger.info(`✅ Session created in MongoDB: ${sessionId} with extraParams: ${parsedExtraParams.length > 0 ? parsedExtraParams.join(' ') : 'None'} and logFilePath: ${logFilePath}`);
 
-/*    
-    logger.info(`📌 Creating job in Bee-Queue: sessionId=${sessionId}, targetUrl=${targetUrl}`);
-    
-    const job = scanQueue.createJob({ sessionId, targetUrl });
-    job.setId(sessionId);
-    job.retries(3);
-    job.save().then(savedJob => {
-      logger.info(`✅ Job successfully added to Bee-Queue: ID=${savedJob.id}, Data=${JSON.stringify(savedJob.data)}`);
-    }).catch(err => {
-      logger.error(`❌ Failed to add job to Bee-Queue: ${err.message}`);
-    });
-*/
-
-    res.json({ message: 'Session started', sessionId });
+    res.json({ message: 'Session started', sessionId, logFilePath });
   } catch (error) {
     logger.error(`❌ Error in startSession: ${error.message}`);
     res.status(500).json({ error: `Internal server error: ${error.message}` });
@@ -275,6 +278,23 @@ exports.deleteSession = async (req, res) => {
 
   } catch (error) {
     logger.error(`❌ Error deleting session ${req.params.sessionId}: ${error.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Retrieve all active sessions (not completed/failed and have a process PID)
+ */
+exports.getActiveSessions = async (req, res) => {
+  try {
+    const activeSessions = await Session.find({
+      status: { $nin: ["completed", "failed"] }, // Exclude completed and failed sessions
+      processPid: { $ne: null } // Ensure a process is assigned
+    });
+
+    res.json(activeSessions);
+  } catch (error) {
+    logger.error(`❌ Error retrieving active sessions: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
