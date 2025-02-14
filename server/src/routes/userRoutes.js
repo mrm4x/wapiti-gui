@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const userController = require('../controllers/userController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Middleware per validare ObjectId
 const validateObjectId = (req, res, next) => {
@@ -12,10 +13,11 @@ const validateObjectId = (req, res, next) => {
   next();
 };
 
-router.post('/users/create', userController.createUser);
-router.get('/users', userController.getAllUsers);
-router.get('/users/:id', validateObjectId, userController.getUserById);
-router.put('/users/:id', validateObjectId, userController.updateUser);
-router.delete('/users/:id', validateObjectId, userController.deleteUser);
+// ✅ Rotte protette con JWT
+router.post('/users/create', authMiddleware.protect, authMiddleware.authorize(['admin']), userController.createUser);
+router.get('/users', authMiddleware.protect, authMiddleware.authorize(['admin']), userController.getAllUsers);
+router.get('/users/:id', authMiddleware.protect, validateObjectId, userController.getUserById);
+router.put('/users/:id', authMiddleware.protect, validateObjectId, userController.updateUser);
+router.delete('/users/:id', authMiddleware.protect, authMiddleware.authorize(['admin']), validateObjectId, userController.deleteUser);
 
 module.exports = router;

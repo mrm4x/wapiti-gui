@@ -5,31 +5,36 @@ const helmet = require('helmet');
 const logger = require('./utils/logger');
 const { spawn } = require('child_process');
 const path = require('path');
-require('./config/mongoConfig'); // Ensure MongoDB is initialized
+require('./config/mongoConfig'); 
+const authRoutes = require('./routes/authRoutes');
+const { protect } = require('./middleware/authMiddleware');
+const sessionRoutes = require('./routes/sessionRoutes');
+const userRoutes = require('./routes/userRoutes');
+const protectedRoutes = require('./routes/protectedRoutes'); // API protette
+
 const MAX_RESTARTS = process.env.MAX_WORKER_RESTART || 5;
+const PORT = process.env.PORT || 3000;
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
 
-// API Routes
+// ✅ API Routes
 
-const sessionRoutes = require('./routes/sessionRoutes');
+app.use('/api', authRoutes);
 app.use('/api', sessionRoutes);
-
-const userRoutes = require('./routes/userRoutes');
 app.use('/api', userRoutes);
+app.use('/api', protect, protectedRoutes); // Protezione con JWT
 
-// Middleware di gestione errori globali
+// ✅ Middleware di gestione errori globali
 app.use((err, req, res, next) => {
     logger.error(`❌ Errore globale: ${err.message}`);
     res.status(500).json({ error: "Errore interno del server" });
 });
 
-// Funzione per avviare il worker con gestione automatica dei crash
+// ✅ Funzione per avviare il worker con gestione automatica dei crash
 function startWorker() {
     if (restartCount >= MAX_RESTARTS) {
         logger.error("❌ Worker ha superato il limite di riavvii, fermando il tentativo di restart.");
@@ -54,10 +59,10 @@ function startWorker() {
     });
 }
 
-// Avvio il worker con gestione automatica dei crash
+// ✅ Avvio il worker con gestione automatica dei crash
 let restartCount = 0;
 startWorker();
 
 app.listen(PORT, () => {
-    logger.info(`Server started at http://0.0.0.0:${PORT}`);
+    logger.info(`🚀 Server started at http://0.0.0.0:${PORT}`);
 });
