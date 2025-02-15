@@ -1,0 +1,33 @@
+<h2>Lista delle Sessioni</h2>
+
+<button (click)="goToNewSession()" class="create-session-btn">
+  ➕ Crea Nuova Sessione
+</button>
+
+<table *ngIf="sessions.length > 0; else noSessions">
+  <thead>
+    <tr>
+      <th>ID Sessione</th>
+      <th>URL Target</th>
+      <th>Stato</th>
+      <th>Data Creazione</th>
+      <th>Azioni</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let session of sessions">
+      <td>{{ session.sessionId }}</td>
+      <td>{{ session.targetUrl }}</td>
+      <td>{{ session.status }}</td>
+      <td>{{ session.createdAt | date:'short' }}</td>
+      <td>
+        <button (click)="viewDetails(session.sessionId)">Dettagli</button>
+        <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<ng-template #noSessions>
+  <p>Nessuna sessione trovata.</p>
+</ng-template>

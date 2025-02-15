@@ -1,0 +1,9 @@
+<form (ngSubmit)="startScan()">
+  <label for="targetUrl">URL da scansionare:</label>
+  <input type="text" id="targetUrl" [(ngModel)]="targetUrl" name="targetUrl" required />
+
+  <label for="extraParams">Opzioni extra:</label>
+  <input type="text" id="extraParams" [(ngModel)]="extraParams" name="extraParams" placeholder="Esempio: --flush-session" />
+
+  <button type="submit">Avvia Scansione</button>
+</form>

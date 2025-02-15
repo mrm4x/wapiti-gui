@@ -1,0 +1,60 @@
+<div *ngIf="session; else loading">
+  <h2>Dettagli della Scansione</h2>
+
+  <button (click)="goBack()">Torna alla Lista</button>
+
+  <table>
+    <tr>
+      <td><strong>ID Sessione:</strong></td>
+      <td>{{ session.sessionId }}</td>
+    </tr>
+    <tr>
+      <td><strong>URL Target:</strong></td>
+      <td>{{ session.targetUrl }}</td>
+    </tr>
+    <tr>
+      <td><strong>Stato:</strong></td>
+      <td>{{ session.status }}</td>
+    </tr>
+    <tr>
+      <td><strong>Process PID:</strong></td>
+      <td>{{ session.processPid || 'N/A' }}</td>
+    </tr>
+    <tr>
+      <td><strong>Log File:</strong></td>
+      <td>{{ session.logFilePath || 'N/A' }}</td>
+    </tr>
+    <tr>
+      <td><strong>Output File:</strong></td>
+      <td>{{ session.outputFile || 'N/A' }}</td>
+    </tr>
+    <tr>
+      <td><strong>Extra Parametri:</strong></td>
+      <td>{{ session.extraParams?.join(', ') || 'Nessuno' }}</td>
+    </tr>
+    <tr>
+      <td><strong>Creato il:</strong></td>
+      <td>{{ session.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+    </tr>
+    <tr>
+      <td><strong>Ultimo aggiornamento:</strong></td>
+      <td>{{ session.updatedAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+    </tr>
+  </table>
+
+  <h3>Storia degli Stati</h3>
+  <ul>
+    <li *ngFor="let entry of session.statusHistory">
+      {{ entry.timestamp | date:'dd/MM/yyyy HH:mm:ss' }} - <strong>{{ entry.status }}</strong>
+    </li>
+  </ul>
+
+  <h3>Output della scansione</h3>
+  <pre *ngIf="session.stdoutHistory?.length > 0">{{ session.stdoutHistory.join('\n') }}</pre>
+  <p *ngIf="!session.stdoutHistory?.length">Nessun output registrato.</p>
+
+</div>
+
+<ng-template #loading>
+  <p>Caricamento dettagli della sessione...</p>
+</ng-template>

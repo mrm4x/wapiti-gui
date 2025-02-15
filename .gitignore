@@ -19,4 +19,4 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
-server/logs/.*.json
+
