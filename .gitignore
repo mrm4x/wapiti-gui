@@ -20,3 +20,6 @@ Thumbs.db
 .idea/
 *.log
 
+server/sleepinput.sh
+server/testFile.js
+server/typescript
