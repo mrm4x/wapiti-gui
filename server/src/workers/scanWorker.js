@@ -39,7 +39,6 @@ exports.executeScan = async (sessionId, targetUrl) => {
             return resolve();
         }
 
-        // ✅ Aggiorna lo stato iniziale senza usare `save()`
         await Session.updateOne({ sessionId }, { $set: { status: 'running', executionTime: null, stdoutHistory: [] } });
 
         const startTime = Date.now();
@@ -62,60 +61,55 @@ exports.executeScan = async (sessionId, targetUrl) => {
         logStream.write(`🚀 Executing: ${WAPITI_PATH} ${wapitiCmd.join(' ')}\n`);
 
         const wapitiProcess = spawn(WAPITI_PATH, wapitiCmd, {
-            shell: true,
             env: { ...process.env, PYTHONWARNINGS: "ignore" }
         });
 
-        wapitiProcess.stdout.setEncoding('utf8');
-        
-        wapitiProcess.stdout.on('data', async (data) => {
-            const output = stripAnsi(data.toString());
-            console.log(`STDOUT: ${output}`);
-            logStream.write(output + '\n');
+        logger.info(`🔄 Wapiti process avviato con PID: ${wapitiProcess.pid}`);
 
+        if (wapitiProcess.pid) {
             try {
-                await Session.updateOne({ sessionId }, { $push: { stdoutHistory: output } });
-            } catch (err) {
-                logger.warn(`⚠️ ParallelSaveError (stdout update). Ritentando...`);
-                setTimeout(async () => {
-                    await Session.updateOne({ sessionId }, { $push: { stdoutHistory: output } });
-                }, 500);
+                await Session.updateOne({ sessionId }, { $set: { processPid: wapitiProcess.pid } });
+                logger.info(`✅ Wapiti PID ${wapitiProcess.pid} salvato per la sessione ${sessionId}`);
+            } catch (error) {
+                logger.error(`❌ Errore nell'aggiornamento del PID per la sessione ${sessionId}: ${error.message}`);
+            }
+        } else {
+            logger.warn(`⚠️ Wapiti non ha un PID valido per la sessione ${sessionId}`);
+        }
+
+        // 🔍 Avvia il processo di monitoraggio con strace
+        const straceProcess = spawn('sudo', ['strace', '-p', wapitiProcess.pid, '-e', 'read']);
+
+        straceProcess.stdout.on('data', async (data) => {
+            const output = data.toString();
+            if (output.includes("read")) {
+                logger.info(`📌 [Strace] Detected input request for session ${sessionId}`);
+                await Session.updateOne({ sessionId }, { $set: { status: 'waiting-for-input' } });
             }
         });
 
-        wapitiProcess.stderr.on('data', async (data) => {
-            const errorOutput = stripAnsi(data.toString().trim());
-            logStream.write(`STDERR: ${errorOutput}\n`);
-            logger.warn(`⚠️ [executeScan] ${errorOutput}`);
-        });
+        // Metodo per fornire input
+        exports.provideInput = async (sessionId, userInput) => {
+            await Session.updateOne({ sessionId }, { $set: { expectedInput: userInput, status: 'filled-input' } });
+            logger.info(`✅ Input ricevuto per sessione ${sessionId}: ${userInput}`);
+        };
 
-        wapitiProcess.on('error', (err) => {
-            logger.error(`❌ [executeScan] Process Error: ${err.message}`);
+        wapitiProcess.stdout.on('data', async (data) => {
+            const output = stripAnsi(data.toString());
+            logStream.write(output + '\n');
+            await Session.updateOne({ sessionId }, { $push: { stdoutHistory: output } });
         });
 
         wapitiProcess.on('close', async (code) => {
             logger.info(`🛑 [executeScan] CLOSE EVENT TRIGGERED for session ${sessionId}, exit code: ${code}`);
 
-            try {
-                await Session.updateOne({ sessionId }, {
-                    $set: {
-                        executionTime: Date.now() - startTime,
-                        outputFile: outputFilePath,
-                        status: code === 0 ? 'completed' : 'failed'
-                    }
-                });
-            } catch (err) {
-                logger.warn(`⚠️ ParallelSaveError (final update). Ritentando...`);
-                setTimeout(async () => {
-                    await Session.updateOne({ sessionId }, {
-                        $set: {
-                            executionTime: Date.now() - startTime,
-                            outputFile: outputFilePath,
-                            status: code === 0 ? 'completed' : 'failed'
-                        }
-                    });
-                }, 500);
-            }
+            await Session.updateOne({ sessionId }, {
+                $set: {
+                    executionTime: Date.now() - startTime,
+                    outputFile: outputFilePath,
+                    status: code === 0 ? 'completed' : 'failed'
+                }
+            });
 
             logStream.end();
             resolve();
