@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 require('../config/mongoConfig'); // 🔹 Importa la configurazione di MongoDB
 const Session = require('../models/sessionModel');
-const { scanQueue } = require('../config/redisConfig');
 const logger = require('../utils/logger');
 
 /**
@@ -48,8 +47,6 @@ exports.resumePausedTasks = async () => {
       session.status = "running";
       await session.save();
 
-      // Re-add job to the queue
-      await scanQueue.add('scanJob', { sessionId: session.sessionId, targetUrl: session.targetUrl });
     }
 
     logger.info("✅ Tutti i task in attesa di input con risposta ricevuta sono stati ripresi.");

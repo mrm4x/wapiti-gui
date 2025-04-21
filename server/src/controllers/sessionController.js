@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const Session = require('../models/sessionModel');
 const User = require('../models/userModel');
 const logger = require('../utils/logger');
-//const { scanQueue } = require('../config/redisConfig');
 
 /**
  * Start a new session and enqueue the scan job.
@@ -120,13 +119,6 @@ exports.provideInput = async (req, res) => {
     await session.save();
     logger.info(`✅ Input received for session ${sessionId}, resuming scan`);
 
-/*    
-    const job = scanQueue.createJob({ sessionId, userInput });
-    job.setId(sessionId);
-    job.retries(2);
-    await job.save();
-*/
-
     res.json({ message: 'Input received, resuming scan' });
   } catch (error) {
     logger.error(`❌ Error in provideInput: ${error.message}`);
@@ -200,8 +192,6 @@ exports.resumePausedTasks = async () => {
       session.status = "running";
       await session.save();
 
-      // Re-add job to the queue
-      await scanQueue.add('scanJob', { sessionId: session.sessionId, targetUrl: session.targetUrl });
     }
 
     logger.info("✅ Tutti i task in attesa di input con risposta ricevuta sono stati ripresi.");
