@@ -10,7 +10,7 @@ require('dotenv').config();
 
 const SCAN_DIR = process.env.SCAN_DIR || 'scans';
 const LOG_DIR = path.join(__dirname, '../../logs');
-const WAPITI_PATH = '/usr/bin/wapiti';
+const WAPITI_PATH = process.env.WAPITI_PATH || '/usr/bin/wapiti';
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wapiti-db';
 
 if (!fs.existsSync(SCAN_DIR)) {
