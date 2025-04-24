@@ -20,9 +20,11 @@
       <td>{{ session.targetUrl }}</td>
       <td>{{ session.status }}</td>
       <td>{{ session.createdAt | date:'short' }}</td>
-      <td>
+      <td class="actions-cell">
         <button (click)="viewDetails(session.sessionId)">Dettagli</button>
-        <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>
+        <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>        
+        <button (click)="showLog(session.sessionId)">📄 Log</button>
+        <button (click)="showResult(session.sessionId)">🗂️ Esito</button>
       </td>
     </tr>
   </tbody>
@@ -31,3 +33,16 @@
 <ng-template #noSessions>
   <p>Nessuna sessione trovata.</p>
 </ng-template>
+
+<!-- Modal per anteprima Log / Esito -->
+<div *ngIf="selectedContent" class="modal-overlay">
+  <div class="modal">
+    <header class="modal-header">
+      <h3>{{ selectedTitle }}</h3>
+      <button class="close-btn" (click)="closeModal()">✖</button>
+    </header>
+    <section class="modal-body">
+      <pre>{{ selectedContent }}</pre>
+    </section>
+  </div>
+</div>

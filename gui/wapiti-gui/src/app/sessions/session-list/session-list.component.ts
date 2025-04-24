@@ -12,36 +12,32 @@ import { CommonModule } from '@angular/common';
 })
 export class SessionListComponent {
   private apiService = inject(ApiService);
-  private router = inject(Router);
+  private router     = inject(Router);
+
   sessions: any[] = [];
 
-  ngOnInit() {
-    this.apiService.getSessions().subscribe({
-      next: (data) => {
-        //console.log("✅ Sessioni ricevute:", data);
-        this.sessions = data;
-      },
-      error: (err) => {
-        console.error("❌ Errore nel caricamento delle sessioni:", err);
-      }
-    });
+  // ▶ Proprietà per il modal
+  selectedTitle:   string | null = null;
+  selectedContent: string | null = null;
+
+  ngOnInit(): void {
+    this.loadSessions();
   }
 
   // ✅ Metodo per visualizzare i dettagli della sessione
-  viewDetails(sessionId: string) {
+  viewDetails(sessionId: string): void {
     this.router.navigate(['/sessions', sessionId]);
   }
   
   // 🔹 Metodo per navigare alla pagina di creazione della sessione
-  goToNewSession() {
+  goToNewSession(): void {
     this.router.navigate(['/sessions/new']);
   }
 
   // ✅ Metodo per caricare la lista delle sessioni
-  loadSessions() {
+  loadSessions(): void {
     this.apiService.getSessions().subscribe({
       next: (data) => {
-        //console.log("✅ Sessioni ricevute:", data);
         this.sessions = data;
       },
       error: (err) => {
@@ -51,7 +47,7 @@ export class SessionListComponent {
   }
 
   // ✅ Metodo per eliminare una sessione
-  deleteSession(sessionId: string) {
+  deleteSession(sessionId: string): void {
     if (!confirm('Sei sicuro di voler eliminare questa sessione?')) {
       return;
     }
@@ -59,12 +55,51 @@ export class SessionListComponent {
     this.apiService.deleteSession(sessionId).subscribe({
       next: () => {
         alert('✅ Sessione eliminata con successo!');
-        this.loadSessions(); // Ricarica la lista delle sessioni
+        this.loadSessions();
       },
       error: (err) => {
         console.error('❌ Errore nella cancellazione della sessione:', err);
         alert('❌ Errore nella cancellazione della sessione.');
       }
     });
+  }
+
+  // ▶ Mostra in modal il contenuto del log
+  showLog(sessionId: string): void {
+    this.apiService.getLogContent(sessionId).subscribe({
+      next: (txt) => {
+        this.selectedTitle   = `Log sessione ${sessionId}`;
+        this.selectedContent = txt;
+      },
+      error: (err) => {
+        console.error('❌ Errore fetch log:', err);
+      }
+    });
+  }
+
+  // ▶ Mostra in modal il contenuto del JSON di risultato
+  showResult(sessionId: string): void {
+    this.apiService.getResultContent(sessionId).subscribe({
+      next: (txt) => {
+        let content = txt;
+        // se è JSON, prova a formattarlo bene
+        try {
+          content = JSON.stringify(JSON.parse(txt), null, 2);
+        } catch {
+          // non è JSON valido, mostralo così com'è
+        }
+        this.selectedTitle   = `Esito sessione ${sessionId}`;
+        this.selectedContent = content;
+      },
+      error: (err) => {
+        console.error('❌ Errore fetch result:', err);
+      }
+    });
+  }
+
+  // ▶ Chiude il modal
+  closeModal(): void {
+    this.selectedContent = null;
+    this.selectedTitle   = null;
   }
 }

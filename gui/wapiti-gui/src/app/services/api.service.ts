@@ -88,4 +88,21 @@ export class ApiService {
     );
   }
   
+  // Restituisce il log come plain-text
+  getLogContent(sessionId: string): Observable<string> {
+    return this.http.get(
+      `${this.apiUrl}/sessions/${sessionId}/log`,
+      { responseType: 'text' }
+    );
+  }
+
+  // Restituisce il JSON di esito come plain-text
+  getResultContent(sessionId: string): Observable<string> {
+    return this.http.get(
+      `${this.apiUrl}/sessions/${sessionId}/result`,
+      { responseType: 'text' }
+    );
+  }
+
+
 }
