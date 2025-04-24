@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
+import { SocketService } from '../../services/socket.service';
 
 @Component({
   selector: 'app-session-detail',
@@ -15,19 +16,31 @@ export class SessionDetailComponent {
   private route      = inject(ActivatedRoute);
   private apiService = inject(ApiService);
   private router     = inject(Router);
+  private socketSv   = inject(SocketService);
 
   session: any = null;
 
-  // Carica i dettagli e poi toglie il loading
+  // Carica i dettagli e imposta il listener per gli update
   async ngOnInit(): Promise<void> {
     const sessionId = this.route.snapshot.paramMap.get('sessionId')!;
+    await this.loadDetail(sessionId);
+
+    // Se arriva un update per questa sessione, ricarichiamo i dettagli
+    this.socketSv.onSessionUpdated().subscribe(({ sessionId: updatedId }) => {
+      if (updatedId === sessionId) {
+        this.loadDetail(sessionId);
+      }
+    });
+  }
+
+  // Metodo centrale per recuperare il dettaglio sessione
+  private async loadDetail(sessionId: string): Promise<void> {
     try {
       this.session = await firstValueFrom(
         this.apiService.getSessionById(sessionId)
       );
     } catch (err) {
       console.error('Errore nel caricamento dei dettagli della sessione:', err);
-      // qui puoi gestire un messaggio di errore su UI se vuoi
     }
   }
 

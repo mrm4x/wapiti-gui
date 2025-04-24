@@ -1,6 +1,5 @@
 // src/workers/scanWorker.js
-// Versione semplificata e stabile: rimosso il monitoraggio con strace
-// e ridotti i log di debugging a quelli essenziali.
+// Versione semplificata e stabile con gestione robusta di crash di Wapiti
 
 'use strict';
 
@@ -16,13 +15,13 @@ require('dotenv').config();
 
 // ▸ Percorsi configurabili via .env
 const SCAN_DIR    = process.env.SCAN_DIR    || 'scans';
-const LOG_DIR     = path.join(__dirname, '../../logs');
+const LOG_DIR     = process.env.LOG_DIR     || path.join(__dirname, '../../logs');
 const WAPITI_PATH = process.env.WAPITI_PATH || '/usr/bin/wapiti';
 const MONGO_URI   = process.env.MONGO_URI   || 'mongodb://localhost:27017/wapiti-db';
 
 // ▸ Accertiamoci che le cartelle esistano
 if (!fs.existsSync(SCAN_DIR)) fs.mkdirSync(SCAN_DIR, { recursive: true });
-if (!fs.existsSync(LOG_DIR))  fs.mkdirSync(LOG_DIR, {  recursive: true });
+if (!fs.existsSync(LOG_DIR))  fs.mkdirSync(LOG_DIR,  { recursive: true });
 
 // ▸ Connessione a Mongo se il processo non è già connesso
 if (mongoose.connection.readyState === 0) {
@@ -59,14 +58,17 @@ exports.executeScan = (sessionId, targetUrl) => new Promise(async (resolve) => {
 
   // 4️⃣ Verifica binario
   if (!fs.existsSync(WAPITI_PATH)) {
-    logger.error(`[executeScan] Wapiti not found at ${WAPITI_PATH}`);
+    const msg = `[executeScan] Wapiti not found at ${WAPITI_PATH}`;
+    logger.error(msg);
+    logStream.write(msg + '\n');
     await Session.updateOne({ sessionId }, { $set: { status: 'failed' } });
+    logStream.end();
     return resolve();
   }
 
   // 5️⃣ Costruzione comando e spawn
   const extraParams = Array.isArray(session.extraParams) ? session.extraParams : [];
-  const wapitiArgs  = ['-u', targetUrl, '-f', 'json', '-o', outputFilePath, ...extraParams];
+  const wapitiArgs  = [...extraParams, '-u', targetUrl, '-f', 'json', '-o', outputFilePath];
   logger.info(`[executeScan] Launch: ${WAPITI_PATH} ${wapitiArgs.join(' ')}`);
   logStream.write(`EXEC: ${WAPITI_PATH} ${wapitiArgs.join(' ')}\n`);
 
@@ -82,6 +84,23 @@ exports.executeScan = (sessionId, targetUrl) => new Promise(async (resolve) => {
     const out = stripAnsi(data.toString());
     logStream.write(out + '\n');
     await Session.updateOne({ sessionId }, { $push: { stdoutHistory: out } }).catch(() => {});
+  });
+
+  // 6.1️⃣ Cattura errori di Wapiti su stderr
+  proc.stderr.on('data', async (data) => {
+    const errLine = stripAnsi(data.toString());
+    logStream.write(`[WAPITI ERR] ${errLine}\n`);
+    await Session.updateOne({ sessionId }, { $push: { stdoutHistory: `[WAPITI ERR] ${errLine}` } }).catch(() => {});
+  });
+
+  // 6.2️⃣ Gestione errori di spawn
+  proc.on('error', async (err) => {
+    const msg = `[executeScan] PROCESS ERROR: ${err.message}`;
+    logger.error(msg);
+    logStream.write(msg + '\n');
+    await Session.updateOne({ sessionId }, { $set: { status: 'failed', executionError: err.message } }).catch(() => {});
+    logStream.end();
+    resolve();
   });
 
   // 7️⃣ Fine processo → aggiorna stato

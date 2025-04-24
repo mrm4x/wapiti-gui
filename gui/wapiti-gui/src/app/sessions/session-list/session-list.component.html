@@ -22,9 +22,17 @@
       <td>{{ session.createdAt | date:'short' }}</td>
       <td class="actions-cell">
         <button (click)="viewDetails(session.sessionId)">Dettagli</button>
-        <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>        
-        <button (click)="showLog(session.sessionId)">📄 Log</button>
-        <button (click)="showResult(session.sessionId)">🗂️ Esito</button>
+        
+        <!-- Elimina sempre disponibile -->
+        <button (click)="deleteSession(session.sessionId)" class="delete-btn">
+          🗑 Elimina
+        </button>        
+
+        <!-- Log e Esito solo se completato -->
+        <ng-container *ngIf="session.status === 'completed'">
+          <button (click)="showLog(session.sessionId)">📄 Log</button>
+          <button (click)="showResult(session.sessionId)">🗂️ Esito</button>
+        </ng-container>
       </td>
     </tr>
   </tbody>

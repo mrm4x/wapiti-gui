@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ApiService } from '../../services/api.service';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { SocketService } from '../../services/socket.service';
 
 @Component({
   selector: 'app-session-list',
@@ -13,6 +14,7 @@ import { CommonModule } from '@angular/common';
 export class SessionListComponent {
   private apiService = inject(ApiService);
   private router     = inject(Router);
+  private socketSv   = inject(SocketService);
 
   sessions: any[] = [];
 
@@ -22,6 +24,19 @@ export class SessionListComponent {
 
   ngOnInit(): void {
     this.loadSessions();
+
+    // Ascolta l’evento dal server e aggiorna solo la sessione modificata
+    this.socketSv.onSessionUpdated().subscribe(({ sessionId }) => {
+      this.apiService.getSessionById(sessionId).subscribe({
+        next: updated => {
+          const idx = this.sessions.findIndex(s => s.sessionId === sessionId);
+          if (idx > -1) {
+            this.sessions[idx] = updated;
+          }
+        },
+        error: err => console.error('❌ Errore nel refresh della sessione:', err)
+      });
+    });
   }
 
   // ✅ Metodo per visualizzare i dettagli della sessione
@@ -86,7 +101,7 @@ export class SessionListComponent {
         try {
           content = JSON.stringify(JSON.parse(txt), null, 2);
         } catch {
-          // non è JSON valido, mostralo così com'è
+          // non è JSON valido, lascialo così com'è
         }
         this.selectedTitle   = `Esito sessione ${sessionId}`;
         this.selectedContent = content;
