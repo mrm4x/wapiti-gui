@@ -1,3 +1,9 @@
+// src/workers/scanWorker.js
+// Versione semplificata e stabile: rimosso il monitoraggio con strace
+// e ridotti i log di debugging a quelli essenziali.
+
+'use strict';
+
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -8,111 +14,88 @@ const logger = require('../utils/logger');
 
 require('dotenv').config();
 
-const SCAN_DIR = process.env.SCAN_DIR || 'scans';
-const LOG_DIR = path.join(__dirname, '../../logs');
+// ▸ Percorsi configurabili via .env
+const SCAN_DIR    = process.env.SCAN_DIR    || 'scans';
+const LOG_DIR     = path.join(__dirname, '../../logs');
 const WAPITI_PATH = process.env.WAPITI_PATH || '/usr/bin/wapiti';
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wapiti-db';
+const MONGO_URI   = process.env.MONGO_URI   || 'mongodb://localhost:27017/wapiti-db';
 
-if (!fs.existsSync(SCAN_DIR)) {
-    fs.mkdirSync(SCAN_DIR, { recursive: true });
-    logger.info(`📂 Created scans directory: ${SCAN_DIR}`);
-}
+// ▸ Accertiamoci che le cartelle esistano
+if (!fs.existsSync(SCAN_DIR)) fs.mkdirSync(SCAN_DIR, { recursive: true });
+if (!fs.existsSync(LOG_DIR))  fs.mkdirSync(LOG_DIR, {  recursive: true });
 
-if (!fs.existsSync(LOG_DIR)) {
-    fs.mkdirSync(LOG_DIR, { recursive: true });
-    logger.info(`📂 Created logs directory: ${LOG_DIR}`);
-}
-
+// ▸ Connessione a Mongo se il processo non è già connesso
 if (mongoose.connection.readyState === 0) {
-    mongoose.connect(MONGO_URI, {})
-        .then(() => logger.info("✅ MongoDB connected successfully from Worker"))
-        .catch(err => logger.error(`❌ MongoDB connection error: ${err.message}`));
+  mongoose.connect(MONGO_URI, {})
+    .then(() => logger.info('✅ MongoDB connected in Worker'))
+    .catch(err => logger.error(`❌ Mongo error (Worker): ${err.message}`));
 }
 
-exports.executeScan = async (sessionId, targetUrl) => {
-    return new Promise(async (resolve) => {
-        logger.info(`🚀 [executeScan] Starting scan for session ${sessionId}`);
+/**
+ * Esegue Wapiti su targetUrl e aggiorna la sessione.
+ * @param {string} sessionId
+ * @param {string} targetUrl
+ */
+exports.executeScan = (sessionId, targetUrl) => new Promise(async (resolve) => {
+  logger.info(`[executeScan] ▶︎ sessionId=${sessionId}`);
 
-        const session = await Session.findOne({ sessionId });
-        if (!session) {
-            logger.error(`❌ [executeScan] Session ${sessionId} not found.`);
-            return resolve();
-        }
+  // 1️⃣ Recupero sessione
+  const session = await Session.findOne({ sessionId });
+  if (!session) {
+    logger.error(`[executeScan] Session ${sessionId} not found.`);
+    return resolve();
+  }
 
-        await Session.updateOne({ sessionId }, { $set: { status: 'running', executionTime: null, stdoutHistory: [] } });
+  // 2️⃣ Aggiorna stato a running
+  await Session.updateOne({ sessionId }, {
+    $set: { status: 'running', executionTime: null, stdoutHistory: [] }
+  });
 
-        const startTime = Date.now();
-        const outputFilePath = path.join(SCAN_DIR, `session-${sessionId}.json`);
-        const logFilePath = path.join(LOG_DIR, `session-${sessionId}.log`);
-        
-        const logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
-        logger.info(`📄 Logging output to ${logFilePath}`);
+  // 3️⃣ Percorsi file
+  const startTime      = Date.now();
+  const outputFilePath = path.join(SCAN_DIR, `session-${sessionId}.json`);
+  const logFilePath    = path.join(LOG_DIR,  `session-${sessionId}.log`);
+  const logStream      = fs.createWriteStream(logFilePath, { flags: 'a' });
 
-        if (!fs.existsSync(WAPITI_PATH)) {
-            logger.error(`❌ [executeScan] Wapiti not found at ${WAPITI_PATH}`);
-            await Session.updateOne({ sessionId }, { $set: { status: 'failed' } });
-            return resolve();
-        }
+  // 4️⃣ Verifica binario
+  if (!fs.existsSync(WAPITI_PATH)) {
+    logger.error(`[executeScan] Wapiti not found at ${WAPITI_PATH}`);
+    await Session.updateOne({ sessionId }, { $set: { status: 'failed' } });
+    return resolve();
+  }
 
-        const extraParams = session.extraParams && Array.isArray(session.extraParams) ? session.extraParams : [];
-        const wapitiCmd = ['-u', targetUrl, '-f', 'json', '-o', outputFilePath, ...extraParams];
+  // 5️⃣ Costruzione comando e spawn
+  const extraParams = Array.isArray(session.extraParams) ? session.extraParams : [];
+  const wapitiArgs  = ['-u', targetUrl, '-f', 'json', '-o', outputFilePath, ...extraParams];
+  logger.info(`[executeScan] Launch: ${WAPITI_PATH} ${wapitiArgs.join(' ')}`);
+  logStream.write(`EXEC: ${WAPITI_PATH} ${wapitiArgs.join(' ')}\n`);
 
-        logger.info(`🚀 [executeScan] Launching Wapiti with command: ${WAPITI_PATH} ${wapitiCmd.join(' ')}`);
-        logStream.write(`🚀 Executing: ${WAPITI_PATH} ${wapitiCmd.join(' ')}\n`);
+  const proc = spawn(WAPITI_PATH, wapitiArgs, { env: { ...process.env, PYTHONWARNINGS: 'ignore' } });
 
-        const wapitiProcess = spawn(WAPITI_PATH, wapitiCmd, {
-            env: { ...process.env, PYTHONWARNINGS: "ignore" }
-        });
+  // Salva il PID (utile per abort)
+  if (proc.pid) {
+    await Session.updateOne({ sessionId }, { $set: { processPid: proc.pid } }).catch(() => {});
+  }
 
-        logger.info(`🔄 Wapiti process avviato con PID: ${wapitiProcess.pid}`);
+  // 6️⃣ Gestione output
+  proc.stdout.on('data', async (data) => {
+    const out = stripAnsi(data.toString());
+    logStream.write(out + '\n');
+    await Session.updateOne({ sessionId }, { $push: { stdoutHistory: out } }).catch(() => {});
+  });
 
-        if (wapitiProcess.pid) {
-            try {
-                await Session.updateOne({ sessionId }, { $set: { processPid: wapitiProcess.pid } });
-                logger.info(`✅ Wapiti PID ${wapitiProcess.pid} salvato per la sessione ${sessionId}`);
-            } catch (error) {
-                logger.error(`❌ Errore nell'aggiornamento del PID per la sessione ${sessionId}: ${error.message}`);
-            }
-        } else {
-            logger.warn(`⚠️ Wapiti non ha un PID valido per la sessione ${sessionId}`);
-        }
+  // 7️⃣ Fine processo → aggiorna stato
+  proc.on('close', async (code) => {
+    await Session.updateOne({ sessionId }, {
+      $set: {
+        executionTime: Date.now() - startTime,
+        outputFile: outputFilePath,
+        status: code === 0 ? 'completed' : 'failed'
+      }
+    }).catch(() => {});
 
-        // 🔍 Avvia il processo di monitoraggio con strace
-        const straceProcess = spawn('sudo', ['strace', '-p', wapitiProcess.pid, '-e', 'read']);
-
-        straceProcess.stdout.on('data', async (data) => {
-            const output = data.toString();
-            if (output.includes("read")) {
-                logger.info(`📌 [Strace] Detected input request for session ${sessionId}`);
-                await Session.updateOne({ sessionId }, { $set: { status: 'waiting-for-input' } });
-            }
-        });
-
-        // Metodo per fornire input
-        exports.provideInput = async (sessionId, userInput) => {
-            await Session.updateOne({ sessionId }, { $set: { expectedInput: userInput, status: 'filled-input' } });
-            logger.info(`✅ Input ricevuto per sessione ${sessionId}: ${userInput}`);
-        };
-
-        wapitiProcess.stdout.on('data', async (data) => {
-            const output = stripAnsi(data.toString());
-            logStream.write(output + '\n');
-            await Session.updateOne({ sessionId }, { $push: { stdoutHistory: output } });
-        });
-
-        wapitiProcess.on('close', async (code) => {
-            logger.info(`🛑 [executeScan] CLOSE EVENT TRIGGERED for session ${sessionId}, exit code: ${code}`);
-
-            await Session.updateOne({ sessionId }, {
-                $set: {
-                    executionTime: Date.now() - startTime,
-                    outputFile: outputFilePath,
-                    status: code === 0 ? 'completed' : 'failed'
-                }
-            });
-
-            logStream.end();
-            resolve();
-        });
-    });
-};
+    logStream.end();
+    logger.info(`[executeScan] ⏹ sessionId=${sessionId} | exit=${code}`);
+    resolve();
+  });
+});
