@@ -10,5 +10,5 @@ export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'sessions', component: SessionListComponent, canActivate: [authGuard] },
   { path: 'sessions/new', component: NewSessionComponent, canActivate: [authGuard] }, // ✅ Nuova pagina
-  { path: 'sessions/:id', component: SessionDetailComponent, canActivate: [authGuard] }
+  { path: 'sessions/:sessionId', component: SessionDetailComponent, canActivate: [authGuard] }
 ];

@@ -71,5 +71,21 @@ export class ApiService {
   deleteSession(sessionId: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/sessions/${sessionId}`);
   }
+
+  // Restituisce il log come Blob
+  downloadLog(sessionId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/sessions/${sessionId}/log`,
+      { responseType: 'blob' }
+    );
+  }
+
+  // Restituisce il JSON di output come Blob
+  downloadResult(sessionId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/sessions/${sessionId}/result`,
+      { responseType: 'blob' }
+    );
+  }
   
 }

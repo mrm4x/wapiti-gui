@@ -1,7 +1,14 @@
 const mongoose = require('mongoose');
+const fs   = require('fs');
+const path = require('path');
+
 const Session = require('../models/sessionModel');
 const User = require('../models/userModel');
 const logger = require('../utils/logger');
+
+// Percorsi (stessa logica di scanWorker)
+const LOG_DIR  = process.env.LOG_DIR || path.join(__dirname, '../../logs');
+const SCAN_DIR = process.env.SCAN_DIR || path.join(__dirname, '../../scans');
 
 /**
  * Start a new session and enqueue the scan job.
@@ -287,4 +294,39 @@ exports.getActiveSessions = async (req, res) => {
     logger.error(`❌ Error retrieving active sessions: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
+};
+
+// ✅ Download del file di log
+exports.downloadLog = async (req, res) => {
+  const { sessionId } = req.params;
+  // 1. Verifica sessione
+  const session = await Session.findOne({ sessionId });
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (session.status !== 'completed')
+    return res
+      .status(400)
+      .json({ error: 'Log disponibile solo per sessioni completate' });
+
+  // 2. Costruisci percorso e invia
+  const logPath = path.join(LOG_DIR, `session-${sessionId}.log`);
+  if (!fs.existsSync(logPath)) return res.status(404).json({ error: 'Log file non trovato' });
+
+  res.download(logPath, `session-${sessionId}.log`);
+};
+
+// ✅ Download del JSON di output
+exports.downloadResult = async (req, res) => {
+  const { sessionId } = req.params;
+  const session = await Session.findOne({ sessionId });
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (session.status !== 'completed')
+    return res
+      .status(400)
+      .json({ error: 'Risultato disponibile solo per sessioni completate' });
+
+  const resultPath = session.outputFile; // già salvato da scanWorker
+  if (!resultPath || !fs.existsSync(resultPath))
+    return res.status(404).json({ error: 'Result file non trovato' });
+
+  res.download(resultPath, `session-${sessionId}.json`);
 };

@@ -42,6 +42,16 @@
     </tr>
   </table>
 
+  <!-- ▼ Download buttons solo a sessione completata ▼ -->
+  <div *ngIf="session.status === 'completed'" class="download-buttons">
+    <button type="button" (click)="onDownloadLog()">
+      📄 Scarica Log
+    </button>
+    <button type="button" (click)="onDownloadResult()">
+      🗂️ Scarica Esito (JSON)
+    </button>
+  </div>
+
   <h3>Storia degli Stati</h3>
   <ul>
     <li *ngFor="let entry of session.statusHistory">

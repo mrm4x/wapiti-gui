@@ -12,6 +12,8 @@ router.post('/sessions/update-status', authMiddleware.protect, sessionController
 router.get('/sessions/:sessionId/stdout', authMiddleware.protect, sessionController.getSessionStdoutHistory);
 router.get('/sessions/:sessionId', authMiddleware.protect, sessionController.getSessionStatus);
 router.get('/sessions', authMiddleware.protect, sessionController.getAllSessions);
+router.get('/sessions/:sessionId/log', authMiddleware.protect, sessionController.downloadLog);
+router.get('/sessions/:sessionId/result', authMiddleware.protect, sessionController.downloadResult);
 
 // 🔥 Solo gli admin possono eliminare una sessione
 router.delete('/sessions/:sessionId', authMiddleware.protect, authMiddleware.authorize(['admin']), sessionController.deleteSession);
