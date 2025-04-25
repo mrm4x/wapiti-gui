@@ -1,6 +1,17 @@
 <div class="container p-2">
   <form (ngSubmit)="startScan()" class="new-session-form">
 
+    <!-- Pulsante Back per tornare alla lista sessioni -->
+    <div class="form-actions flex gap-2 m-2">
+      <button
+        type="button"
+        class="create-session-btn"
+        [routerLink]="['/sessions']"
+      >
+        Indietro
+      </button>
+    </div>
+
     <!-- URL da scansionare (sempre visibile) -->
     <div class="form-group m-2">
       <label for="targetUrl">URL da scansionare:</label>
@@ -10,6 +21,7 @@
         name="targetUrl"
         [(ngModel)]="targetUrl"
         required
+        placeholder="https://website.to-scan.com"
       />
     </div>
 

@@ -3,13 +3,14 @@ import { ApiService } from '../../services/api.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-new-session',
   templateUrl: './new-session.component.html',
   styleUrls: ['./new-session.component.scss'],
   standalone: true,
-  imports: [FormsModule, CommonModule]
+  imports: [FormsModule, CommonModule, RouterModule]
 })
 export class NewSessionComponent implements OnInit {
   private apiService = inject(ApiService);
