@@ -1,9 +1,163 @@
-<form (ngSubmit)="startScan()">
-  <label for="targetUrl">URL da scansionare:</label>
-  <input type="text" id="targetUrl" [(ngModel)]="targetUrl" name="targetUrl" required />
+<form (ngSubmit)="startScan()" class="new-session-form">
 
-  <label for="extraParams">Opzioni extra:</label>
-  <input type="text" id="extraParams" [(ngModel)]="extraParams" name="extraParams" placeholder="Esempio: --flush-session" />
+  <!-- URL da scansionare (sempre visibile) -->
+  <div class="form-group">
+    <label for="targetUrl">URL da scansionare:</label>
+    <input type="url" id="targetUrl" name="targetUrl" [(ngModel)]="targetUrl" required />
+  </div>
 
-  <button type="submit">Avvia Scansione</button>
+  <!-- Sezione: Impostazioni Base -->
+  <details>
+    <summary><strong>Impostazioni Base</strong></summary>
+    <div class="section-body">
+      <label for="scope">Ambito (scope):</label>
+      <select id="scope" name="scope" [(ngModel)]="scope">
+        <option *ngFor="let s of ['url','page','folder','subdomain','domain','punk']" [value]="s">{{ s }}</option>
+      </select>
+
+      <label for="swagger">Swagger URI:</label>
+      <input type="text" id="swagger" name="swagger" [(ngModel)]="swagger" placeholder="path o URL" />
+
+      <label for="data">Dati POST (url-encoded):</label>
+      <textarea id="data" name="data" [(ngModel)]="data" rows="2" placeholder="chiave1=valore1&chiave2=valore2"></textarea>
+
+      <label for="modules">Moduli (comma-separated):</label>
+      <input type="text" id="modules" name="modules" [(ngModel)]="modules" placeholder="sql,xss,redirect,..." />
+
+      <label><input type="checkbox" name="listModules" [(ngModel)]="listModules" /> Mostra lista moduli</label>
+      <label for="level">Livello (-l):</label>
+      <input type="number" id="level" name="level" [(ngModel)]="level" min="0" step="1" />
+    </div>
+  </details>
+
+  <!-- Sezione: Crawl & Flush -->
+  <details>
+    <summary><strong>Crawl &amp; Flush</strong></summary>
+    <div class="section-body">
+      <label><input type="checkbox" name="skipCrawl" [(ngModel)]="skipCrawl" /> --skip-crawl</label>
+      <label><input type="checkbox" name="resumeCrawl" [(ngModel)]="resumeCrawl" /> --resume-crawl</label>
+      <label><input type="checkbox" name="flushAttacks" [(ngModel)]="flushAttacks" /> --flush-attacks</label>
+      <label><input type="checkbox" name="flushSession" [(ngModel)]="flushSession" /> --flush-session</label>
+
+      <label for="depth">Profondità (-d):</label>
+      <input type="number" id="depth" name="depth" [(ngModel)]="depth" min="0" />
+
+      <label for="tasks">Task concorrenti (--tasks):</label>
+      <input type="number" id="tasks" name="tasks" [(ngModel)]="tasks" min="1" />
+
+      <label for="timeout">Timeout richieste (sec):</label>
+      <input type="number" id="timeout" name="timeout" [(ngModel)]="timeout" min="0" step="0.1" />
+
+      <label for="scanForce">Scan Force (-S):</label>
+      <select id="scanForce" name="scanForce" [(ngModel)]="scanForce">
+        <option *ngFor="let f of ['paranoid','sneaky','polite','normal','aggressive','insane']" [value]="f">{{ f }}</option>
+      </select>
+    </div>
+  </details>
+
+  <!-- Sezione: Rete &amp; Crawler -->
+
+  <!-- Sezione: Autenticazione HTTP -->
+  <details>
+    <summary><strong>Autenticazione HTTP</strong></summary>
+    <div class="section-body">
+      <div class="form-group">
+        <label for="authUser">Username:</label>
+        <input type="text" id="authUser" name="authUser" [(ngModel)]="authUser" placeholder="" />
+      </div>
+      <div class="form-group">
+        <label for="authPassword">Password:</label>
+        <input type="password" id="authPassword" name="authPassword" [(ngModel)]="authPassword" placeholder="" />
+      </div>
+      <div class="form-group">
+        <label for="authMethod">Metodo:</label>
+        <select id="authMethod" name="authMethod" [(ngModel)]="authMethod">
+          <option *ngFor="let m of ['basic','digest','ntlm']" [value]="m">{{ m }}</option>
+        </select>
+      </div>
+    </div>
+  </details>
+
+  <!-- Sezione: Cookie &amp; Header -->
+  <details>
+    <summary><strong>Cookie &amp; Header</strong></summary>
+    <div class="section-body">
+      <fieldset>
+        <legend>Cookie personalizzati</legend>
+        <div *ngFor="let c of cookies; let i = index" class="dynamic-field">
+          <input type="text" [name]="'cookie'+i" [(ngModel)]="cookies[i]" placeholder="nome=valore" />
+          <button type="button" (click)="removeCookie(i)">✖</button>
+        </div>
+        <button type="button" (click)="addCookie()">+ Aggiungi Cookie</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Header personalizzati</legend>
+        <div *ngFor="let h of headers; let i = index" class="dynamic-field">
+          <input type="text" [name]="'header'+i" [(ngModel)]="headers[i]" placeholder="Header: valore" />
+          <button type="button" (click)="removeHeader(i)">✖</button>
+        </div>
+        <button type="button" (click)="addHeader()">+ Aggiungi Header</button>
+      </fieldset>
+    </div>
+  </details>
+
+  <!-- Sezione: Report & Output -->
+  <details>
+    <summary><strong>Report &amp; Output</strong></summary>
+    <div class="section-body">
+      <div class="form-group">
+        <label for="userAgent">User-Agent:</label>
+        <input type="text" id="userAgent" name="userAgent" [(ngModel)]="userAgent" />
+      </div>
+      <div class="form-group inline-checks">
+        <label><input type="checkbox" name="verifySsl" [(ngModel)]="verifySsl" /> --verify-ssl</label>
+        <label><input type="checkbox" name="colorOutput" [(ngModel)]="colorOutput" /> --color</label>
+        <label><input type="checkbox" name="noBugreport" [(ngModel)]="noBugreport" /> --no-bugreport</label>
+        <label><input type="checkbox" name="updateFlag" [(ngModel)]="updateFlag" /> --update</label>
+      </div>
+      <div class="form-group">
+        <label for="verbose">Verbosity (-v):</label>
+        <select id="verbose" name="verbose" [(ngModel)]="verbose">
+          <option *ngFor="let v of [0,1,2]" [value]="v">{{ v }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="logPath">Log file (--log):</label>
+        <input type="text" id="logPath" name="logPath" [(ngModel)]="logPath" placeholder="percorso/file.log" />
+      </div>
+      <div class="form-group">
+        <label for="format">Formato report (-f):</label>
+        <select id="format" name="format" [(ngModel)]="format">
+          <option *ngFor="let fmt of ['csv','html','json','txt','xml']" [value]="fmt">{{ fmt }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="outputPath">Output (--output):</label>
+        <input type="text" id="outputPath" name="outputPath" [(ngModel)]="outputPath" />
+      </div>
+      <div class="form-group">
+        <label for="detailedReport">Dettaglio report (1-2):</label>
+        <input type="number" id="detailedReport" name="detailedReport" [(ngModel)]="detailedReport" min="1" max="2" />
+      </div>
+      <div class="form-group">
+        <label for="cms">CMS target (--cms):</label>
+        <input type="text" id="cms" name="cms" [(ngModel)]="cms" placeholder="drupal,joomla,..." />
+      </div>
+      <div class="form-group-inline">
+        <label for="wappUrl">Wappalyzer URL (--wapp-url):</label>
+        <input type="text" id="wappUrl" name="wappUrl" [(ngModel)]="wappUrl" />
+      </div>
+      <div class="form-group-inline">
+        <label for="wappDir">Wappalyzer dir (--wapp-dir):</label>
+        <input type="text" id="wappDir" name="wappDir" [(ngModel)]="wappDir" />
+      </div>
+    </div>
+  </details>
+
+  <!-- Pulsante di invio -->
+  <div class="form-actions">
+    <button type="submit">Avvia Scansione</button>
+  </div>
+
 </form>

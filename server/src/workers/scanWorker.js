@@ -1,5 +1,5 @@
 // src/workers/scanWorker.js
-// Versione semplificata e stabile con gestione robusta di crash di Wapiti
+// Versione con formato di output dinamico basato sui parametri extra
 
 'use strict';
 
@@ -50,9 +50,21 @@ exports.executeScan = (sessionId, targetUrl) => new Promise(async (resolve) => {
     $set: { status: 'running', executionTime: null, stdoutHistory: [] }
   });
 
-  // 3️⃣ Percorsi file
-  const startTime      = Date.now();
-  const outputFilePath = path.join(SCAN_DIR, `session-${sessionId}.json`);
+  // 3️⃣ Percorsi file e determinazione formato
+  const startTime = Date.now();
+  const extraParams = Array.isArray(session.extraParams) ? [...session.extraParams] : [];
+  // Trova se l'utente ha specificato '-f' o '--format'
+  let format = 'json';
+  const idx = extraParams.findIndex(p => p === '-f' || p === '--format');
+  if (idx !== -1 && extraParams.length > idx + 1) {
+    format = extraParams[idx + 1];
+    // Rimuovi i due parametri per evitare duplicati
+    extraParams.splice(idx, 2);
+  }
+  // Estensione del file
+  const ext = format.startsWith('.') ? format : `.${format}`;
+
+  const outputFilePath = path.join(SCAN_DIR, `session-${sessionId}${ext}`);
   const logFilePath    = path.join(LOG_DIR,  `session-${sessionId}.log`);
   const logStream      = fs.createWriteStream(logFilePath, { flags: 'a' });
 
@@ -67,8 +79,12 @@ exports.executeScan = (sessionId, targetUrl) => new Promise(async (resolve) => {
   }
 
   // 5️⃣ Costruzione comando e spawn
-  const extraParams = Array.isArray(session.extraParams) ? session.extraParams : [];
-  const wapitiArgs  = [...extraParams, '-u', targetUrl, '-f', 'json', '-o', outputFilePath];
+  const wapitiArgs = [
+    ...extraParams,
+    '-u', targetUrl,
+    '-f', format,
+    '-o', outputFilePath
+  ];
   logger.info(`[executeScan] Launch: ${WAPITI_PATH} ${wapitiArgs.join(' ')}`);
   logStream.write(`EXEC: ${WAPITI_PATH} ${wapitiArgs.join(' ')}\n`);
 
@@ -79,14 +95,14 @@ exports.executeScan = (sessionId, targetUrl) => new Promise(async (resolve) => {
     await Session.updateOne({ sessionId }, { $set: { processPid: proc.pid } }).catch(() => {});
   }
 
-  // 6️⃣ Gestione output
+  // 6️⃣ Gestione output stdout
   proc.stdout.on('data', async (data) => {
     const out = stripAnsi(data.toString());
     logStream.write(out + '\n');
     await Session.updateOne({ sessionId }, { $push: { stdoutHistory: out } }).catch(() => {});
   });
 
-  // 6.1️⃣ Cattura errori di Wapiti su stderr
+  // 6.1️⃣ Cattura errori Wapiti stderr
   proc.stderr.on('data', async (data) => {
     const errLine = stripAnsi(data.toString());
     logStream.write(`[WAPITI ERR] ${errLine}\n`);
