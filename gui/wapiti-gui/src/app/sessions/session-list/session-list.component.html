@@ -1,56 +1,54 @@
-<h2>Lista delle Sessioni</h2>
+<div class="container p-2">
 
-<button (click)="goToNewSession()" class="create-session-btn">
-  ➕ Crea Nuova Sessione
-</button>
+  <h2 class="m-2">Lista delle Sessioni</h2>
 
-<table *ngIf="sessions.length > 0; else noSessions">
-  <thead>
-    <tr>
-      <th>ID Sessione</th>
-      <th>URL Target</th>
-      <th>Stato</th>
-      <th>Data Creazione</th>
-      <th>Azioni</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let session of sessions">
-      <td>{{ session.sessionId }}</td>
-      <td>{{ session.targetUrl }}</td>
-      <td>{{ session.status }}</td>
-      <td>{{ session.createdAt | date:'short' }}</td>
-      <td class="actions-cell">
-        <button (click)="viewDetails(session.sessionId)">Dettagli</button>
-        
-        <!-- Elimina sempre disponibile -->
-        <button (click)="deleteSession(session.sessionId)" class="delete-btn">
-          🗑 Elimina
-        </button>        
+  <button (click)="goToNewSession()" class="m-2 button">
+    ➕ Crea Nuova Sessione
+  </button>
 
-        <!-- Log e Esito solo se completato -->
-        <ng-container *ngIf="session.status === 'completed'">
-          <button (click)="showLog(session.sessionId)">📄 Log</button>
-          <button (click)="showResult(session.sessionId)">🗂️ Esito</button>
-        </ng-container>
-      </td>
-    </tr>
-  </tbody>
-</table>
+  <table *ngIf="sessions.length > 0; else noSessions" class="m-2">
+    <thead>
+      <tr>
+        <th>ID Sessione</th>
+        <th>URL Target</th>
+        <th>Stato</th>
+        <th>Data Creazione</th>
+        <th>Azioni</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let session of sessions">
+        <td>{{ session.sessionId }}</td>
+        <td>{{ session.targetUrl }}</td>
+        <td>{{ session.status }}</td>
+        <td>{{ session.createdAt | date:'short' }}</td>
+        <td class="flex flex-center p-1 gap-1">
+          <button (click)="viewDetails(session.sessionId)">Dettagli</button>
+          <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>
+          <ng-container *ngIf="session.status === 'completed'">
+            <button (click)="showLog(session.sessionId)">📄 Log</button>
+            <button (click)="showResult(session.sessionId)">🗂️ Esito</button>
+          </ng-container>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
-<ng-template #noSessions>
-  <p>Nessuna sessione trovata.</p>
-</ng-template>
+  <ng-template #noSessions>
+    <p class="m-2">Nessuna sessione trovata.</p>
+  </ng-template>
 
-<!-- Modal per anteprima Log / Esito -->
-<div *ngIf="selectedContent" class="modal-overlay">
-  <div class="modal">
-    <header class="modal-header">
-      <h3>{{ selectedTitle }}</h3>
-      <button class="close-btn" (click)="closeModal()">✖</button>
-    </header>
-    <section class="modal-body">
-      <pre>{{ selectedContent }}</pre>
-    </section>
+  <!-- Modal per anteprima Log / Esito -->
+  <div *ngIf="selectedContent" class="modal-overlay">
+    <div class="modal">
+      <header class="modal-header">
+        <h3>{{ selectedTitle }}</h3>
+        <button class="close-btn" (click)="closeModal()">✖</button>
+      </header>
+      <section class="modal-body">
+        <pre>{{ selectedContent }}</pre>
+      </section>
+    </div>
   </div>
+
 </div>

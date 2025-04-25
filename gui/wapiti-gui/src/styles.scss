@@ -1,1 +1,151 @@
 /* You can add global styles to this file, and also import other style files */
+/* src/styles.scss */
+
+/* Color palette */
+:root {
+  --color-primary: #5F7A8A; /* grigio-azzurro sobrio */
+  --color-secondary: #F5F7F9;
+  --color-accent: #82A8C2;
+  --color-text: #2E2E2E;
+  --color-bg: #FFFFFF;
+  --color-border: #D1D9E6;
+  --border-radius: 4px;
+  --spacing: 1rem;
+  --font-base: 'Segoe UI', Tahoma, sans-serif;
+}
+
+/* Global resets and typography */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html, body {
+  height: 100%;
+  font-family: var(--font-base);
+  color: var(--color-text);
+  background-color: var(--color-secondary);
+}
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Utility classes */
+.p-1 { padding: calc(var(--spacing) * 0.5); }
+.p-2 { padding: var(--spacing); }
+.m-1 { margin: calc(var(--spacing) * 0.5); }
+.m-2 { margin: var(--spacing); }
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+
+/* Buttons */
+button {
+  background-color: var(--color-primary);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+button:hover {
+  background-color: var(--color-accent);
+}
+button.delete-btn {
+  background-color: #E06C75;
+}
+button.delete-btn:hover {
+  background-color: #D05A62;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing);
+}
+th, td {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+th {
+  background-color: var(--color-bg);
+}
+tr:nth-child(even) td {
+  background-color: var(--color-secondary);
+}
+
+/* Forms */
+input[type="text"], input[type="url"], input[type="number"], input[type="password"], textarea, select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-bg);
+  margin-bottom: var(--spacing);
+}
+label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  background: var(--color-bg);
+  padding: var(--spacing);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing);
+}
+.close-btn {
+  background: transparent;
+  font-size: 1.2rem;
+  color: var(--color-text);
+}
+
+/* Details/Summaries */
+details {
+  margin-bottom: var(--spacing);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background: var(--color-bg);
+}
+summary {
+  padding: var(--spacing);
+  cursor: pointer;
+  font-weight: 600;
+}
+.section-body {
+  padding: var(--spacing);
+}
+
+/* Responsive container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing);
+}

@@ -1,9 +1,10 @@
-<div *ngIf="session; else loading">
-  <h2>Dettagli della Scansione</h2>
+<div *ngIf="session; else loading" class="container p-2">
 
-  <button (click)="goBack()">Torna alla Lista</button>
+  <h2 class="m-2">Dettagli della Scansione</h2>
 
-  <table>
+  <button (click)="goBack()" class="m-2">← Torna alla Lista</button>
+
+  <table class="m-2">
     <tr>
       <td><strong>ID Sessione:</strong></td>
       <td>{{ session.sessionId }}</td>
@@ -42,29 +43,25 @@
     </tr>
   </table>
 
-  <!-- ▼ Download buttons solo a sessione completata ▼ -->
-  <div *ngIf="session.status === 'completed'" class="download-buttons">
-    <button type="button" (click)="onDownloadLog()">
-      📄 Scarica Log
-    </button>
-    <button type="button" (click)="onDownloadResult()">
-      🗂️ Scarica Esito (JSON)
-    </button>
+  <!-- Download buttons solo a sessione completata -->
+  <div *ngIf="session.status === 'completed'" class="flex flex-center gap-1 m-2">
+    <button type="button" (click)="onDownloadLog()">📄 Scarica Log</button>
+    <button type="button" (click)="onDownloadResult()">🗂️ Scarica Esito</button>
   </div>
 
-  <h3>Storia degli Stati</h3>
-  <ul>
+  <h3 class="m-2">Storia degli Stati</h3>
+  <ul class="m-2">
     <li *ngFor="let entry of session.statusHistory">
       {{ entry.timestamp | date:'dd/MM/yyyy HH:mm:ss' }} - <strong>{{ entry.status }}</strong>
     </li>
   </ul>
 
-  <h3>Output della scansione</h3>
-  <pre *ngIf="session.stdoutHistory?.length > 0">{{ session.stdoutHistory.join('\n') }}</pre>
-  <p *ngIf="!session.stdoutHistory?.length">Nessun output registrato.</p>
+  <h3 class="m-2">Output della scansione</h3>
+  <pre *ngIf="session.stdoutHistory?.length > 0" class="m-2">{{ session.stdoutHistory.join('\n') }}</pre>
+  <p *ngIf="!session.stdoutHistory?.length" class="m-2">Nessun output registrato.</p>
 
 </div>
 
 <ng-template #loading>
-  <p>Caricamento dettagli della sessione...</p>
+  <p class="m-2">Caricamento dettagli della sessione...</p>
 </ng-template>
