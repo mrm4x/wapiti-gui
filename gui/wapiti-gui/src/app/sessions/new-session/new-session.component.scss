@@ -25,16 +25,13 @@ input {
   border-radius: 4px;
 }
 
-button {
-  width: 100%;
-  margin-top: 15px;
-  padding: 10px;
-  background: #007bff;
-  color: white;
-  border: none;
-  cursor: pointer;
+/* --- layout e spazi coerenti con il resto della GUI --- */
+.form-actions {
+  display: flex;
+  gap: var(--spacing);   /* var(--spacing) è già definita in styles.scss */
 }
 
-button:hover {
-  background: #0056b3;
+/* margine solo per il submit, senza forzare larghezze globali */
+button[type='submit'] {
+  margin-top: var(--spacing);
 }

@@ -39,6 +39,13 @@ export class AuthService {
   }
 
   /**
+   * Verifica se si è già loggati (metodo sincrono)
+   */
+  isLoggedIn(): boolean {
+    return !!this.getToken();
+  }
+
+  /**
    * Recupera il token JWT
    */
   getToken(): string | null {

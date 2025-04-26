@@ -1,17 +1,16 @@
 <div class="container p-2">
-  <form (ngSubmit)="startScan()" class="new-session-form">
-
-    <!-- Pulsante Back per tornare alla lista sessioni -->
-    <div class="form-actions flex gap-2 m-2">
-      <button
-        type="button"
-        class="create-session-btn"
-        [routerLink]="['/sessions']"
-      >
-        Indietro
-      </button>
-    </div>
-
+      <!-- Titolo pagina in linea con le altre schermate -->
+      <h2 class="m-2">Nuova Sessione</h2>
+    
+      <!-- Pulsante Back sotto al titolo con lo stile standard -->
+      <div class="m-2">
+        <button type="button" class="m-2" [routerLink]="['/sessions']">
+          ← Torna alla Lista
+        </button>
+      </div>
+    
+      <form (ngSubmit)="startScan()" class="new-session-form">
+    
     <!-- URL da scansionare (sempre visibile) -->
     <div class="form-group m-2">
       <label for="targetUrl">URL da scansionare:</label>

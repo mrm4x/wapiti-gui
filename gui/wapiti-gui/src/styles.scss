@@ -51,6 +51,7 @@ button {
   padding: 0.5rem 1rem;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  margin-inline: 1px;
 }
 button:hover {
   background-color: var(--color-accent);
@@ -112,14 +113,30 @@ label {
   border-radius: var(--border-radius);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   max-width: 90%;
-  max-height: 90%;
-  overflow-y: auto;
+  width: 80vw;          /* opzionale, stabilizza la larghezza */
+  max-height: 80vh;      /* evita che esca dallo schermo */
+  display: flex;         /* header in alto, body sotto */
+  flex-direction: column;
+  overflow: hidden;      /* la scrollbar si sposta nel body */
+  resize: both;           /* abilita il ridimensionamento */
+  cursor: nwse-resize;    /* puntatore coerente */
+  min-width: 320px;       /* opzionale: previene modale troppo piccolo */
+  min-height: 200px;
+  max-width: 100vw;       /* opzionale: mai più grande dello schermo */
+  max-height: 100vh;
 }
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+/* area che scorre all’interno del modale */
+.modal-body {
+  padding: var(--spacing);
+  overflow-y: auto;      /* la scrollbar vive qui */
+  flex: 1;               /* occupa lo spazio rimasto */
 }
 .close-btn {
   background: transparent;
@@ -148,4 +165,35 @@ summary {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing);
+}
+
+.status-pending         { color: #6fa8dc; }                        /* blu-grigio */
+.status-in-progress,
+.status-running         { color: #6c757d; animation: blink 1s step-start infinite; }
+.status-done,
+.status-completed       { color: #28a745; }                        /* verde      */
+.status-failed          { color: #dc3545; }                        /* rosso      */
+
+@keyframes blink { 50% { opacity: .25; } }
+
+.actions-cell {
+  justify-content: flex-start;   
+  align-items: center;           
+}
+
+/* ---------------------------------------------------- */
+/*  Fade-in globale: ogni nuovo contenuto .container     */
+/*  entra con una sfumatura morbida di 250 ms            */
+/* ---------------------------------------------------- */
+
+@keyframes app-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* rispetta l’impostazione “riduci animazioni” del SO  */
+@media (prefers-reduced-motion: no-preference) {
+  .container {
+    animation: app-fade-in 250ms ease-in both;
+  }
 }

@@ -1,21 +1,36 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { ApiService } from '../../services/api.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   standalone: true, 
-  imports: [FormsModule]
+  imports: [CommonModule, FormsModule]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   email: string = '';
   password: string = '';
+  redirecting = false;
 
-  constructor(private authService: AuthService, private apiService: ApiService, private router: Router) {}
+  constructor(private authService: AuthService, private apiService: ApiService, private router: Router, private cdr: ChangeDetectorRef) {}
+
+  ngOnInit(): void {
+    // Se già loggato, vai direttamente alla lista sessioni
+    if (this.authService.isLoggedIn()) {
+      this.redirecting = true;         // mostra la splash
+      this.cdr.detectChanges();        // ⬅️ forza il rendering immediato
+      
+      // ⏳ attende almeno 3 s prima di navigare
+      setTimeout(() => {
+        this.router.navigate(['/sessions']);
+      }, 2100);
+    }
+  }
 
   onSubmit() {
     if (!this.email || !this.password) {

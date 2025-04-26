@@ -6,23 +6,33 @@
     ➕ Crea Nuova Sessione
   </button>
 
-  <table *ngIf="sessions.length > 0; else noSessions" class="m-2">
+  <table *ngIf="sessions.length > 0; else noSessions" class="m-2 session-table">
     <thead>
       <tr>
         <th>ID Sessione</th>
         <th>URL Target</th>
         <th>Stato</th>
         <th>Data Creazione</th>
-        <th>Azioni</th>
+        <th class="actions-col">Azioni</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let session of sessions">
         <td>{{ session.sessionId }}</td>
         <td>{{ session.targetUrl }}</td>
-        <td>{{ session.status }}</td>
+        <td
+          [ngClass]="
+            'status-' +
+            (session.status || '')
+              .toLowerCase()
+              .split(' ')
+              .join('-')
+          "
+        >
+          {{ session.status }}
+        </td>        
         <td>{{ session.createdAt | date:'short' }}</td>
-        <td class="flex flex-center p-1 gap-1">
+        <td class="flex actions-cell p-1 gap-1">
           <button (click)="viewDetails(session.sessionId)">Dettagli</button>
           <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>
           <ng-container *ngIf="session.status === 'completed'">
