@@ -1,0 +1,43 @@
+<nav class="app-nav">
+  <!-- SINISTRA: logo -->
+  <div class="nav-left">
+    <img src="./assets/img/wapiti-logo-gui.png" alt="Wapiti GUI" class="logo" />
+  </div>
+
+  <!-- CENTRO: menu -->
+  <ul class="nav-center">
+    <li routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+      <a routerLink="/sessions">Sessions</a>
+    </li>
+  
+    <li routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+      <a routerLink="/sessions/new">New Sessions</a>
+    </li>
+  
+    <li routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+      <a routerLink="/sessions/archives">Archives</a>
+    </li>
+  </ul>  
+
+  <!-- DESTRA: icone -->
+  <div class="nav-right">
+    <!-- icona ingranaggio -->
+    <button class="icon-btn"
+            routerLink="/settings"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            aria-label="Settings">
+      <i class="bi bi-gear-fill"></i>
+    </button>
+
+    <!-- icona logout -->
+    <button class="icon-btn"
+            routerLink="/logout"
+            aria-label="Logout">
+      <i class="bi bi-box-arrow-right"></i>
+    </button>
+  </div>
+</nav>

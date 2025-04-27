@@ -17,18 +17,22 @@ export class LoginComponent implements OnInit {
   password: string = '';
   redirecting = false;
 
-  constructor(private authService: AuthService, private apiService: ApiService, private router: Router, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private authService: AuthService,
+    private apiService: ApiService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     // Se già loggato, vai direttamente alla lista sessioni
     if (this.authService.isLoggedIn()) {
-      this.redirecting = true;         // mostra la splash
-      this.cdr.detectChanges();        // ⬅️ forza il rendering immediato
-      
-      // ⏳ attende almeno 3 s prima di navigare
+      this.redirecting = true;        
+      this.cdr.detectChanges();        // forza il rendering immediato
+
       setTimeout(() => {
         this.router.navigate(['/sessions']);
-      }, 2100);
+      }, 1500);
     }
   }
 
@@ -42,12 +46,19 @@ export class LoginComponent implements OnInit {
       next: (token) => {
         console.log("✅ Login effettuato con successo! Token ricevuto.");
 
-        // ✅ Chiede al server l'ID utente SOLO dopo che il login è riuscito
+        // ✅ Carica l'ID utente solo dopo login
         this.apiService.getUserId().subscribe({
           next: (userResponse) => {
             console.log("✅ ID utente recuperato:", userResponse.id);
             this.apiService.saveUserId(userResponse.id);
-            this.router.navigate(['/sessions']); // ✅ Reindirizza l'utente
+
+            // 👇 mostra lo spinner e poi reindirizza
+            this.redirecting = true;
+            this.cdr.detectChanges();  // forza l'aggiornamento immediato
+
+            setTimeout(() => {
+              this.router.navigate(['/sessions']);
+            }, 1500);
           },
           error: (err) => {
             console.error("❌ Errore nel recupero dell'ID utente:", err);

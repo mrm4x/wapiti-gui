@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ApiService } from '../../services/api.service';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SocketService } from '../../services/socket.service';
 
@@ -9,7 +9,7 @@ import { SocketService } from '../../services/socket.service';
   templateUrl: './session-list.component.html',
   styleUrls: ['./session-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterLink]
+  imports: [CommonModule]
 })
 export class SessionListComponent {
   private apiService = inject(ApiService);

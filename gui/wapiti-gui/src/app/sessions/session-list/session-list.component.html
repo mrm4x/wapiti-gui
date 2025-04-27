@@ -5,9 +5,6 @@
   <button (click)="goToNewSession()" class="m-2 button">
     ➕ Crea Nuova Sessione
   </button>  
-  <button class="btn btn-outline-secondary" [routerLink]="['/logout']">
-    <i class="bi bi-box-arrow-right"></i> Logout
-  </button>
 
   <table *ngIf="sessions.length > 0; else noSessions" class="m-2 session-table">
     <thead>
@@ -37,11 +34,11 @@
         <td>{{ session.createdAt | date:'short' }}</td>
         <td class="flex actions-cell p-1 gap-1">
           <button (click)="viewDetails(session.sessionId)">Dettagli</button>
-          <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>
           <ng-container *ngIf="session.status === 'completed'">
             <button (click)="showLog(session.sessionId)">📄 Log</button>
             <button (click)="showResult(session.sessionId)">🗂️ Esito</button>
           </ng-container>
+          <button (click)="deleteSession(session.sessionId)" class="delete-btn">🗑 Elimina</button>
         </td>
       </tr>
     </tbody>
