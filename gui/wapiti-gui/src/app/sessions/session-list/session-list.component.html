@@ -4,6 +4,9 @@
 
   <button (click)="goToNewSession()" class="m-2 button">
     ➕ Crea Nuova Sessione
+  </button>  
+  <button class="btn btn-outline-secondary" [routerLink]="['/logout']">
+    <i class="bi bi-box-arrow-right"></i> Logout
   </button>
 
   <table *ngIf="sessions.length > 0; else noSessions" class="m-2 session-table">
