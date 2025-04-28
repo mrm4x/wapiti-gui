@@ -1,15 +1,13 @@
 <div class="container p-2">
-      <!-- Titolo pagina in linea con le altre schermate -->
-      <h2 class="m-2">Nuova Sessione</h2>
-    
-      <!-- Pulsante Back sotto al titolo con lo stile standard -->
-      <div class="m-2">
-        <button type="button" class="m-2" [routerLink]="['/sessions']">
-          ← Torna alla Lista
-        </button>
-      </div>
-    
-      <form (ngSubmit)="startScan()" class="new-session-form">
+    <!-- Titolo pagina in linea con le altre schermate -->
+    <h2 class="m-2">Nuova Sessione</h2>
+  
+    <!-- Pulsante Back sotto al titolo con lo stile standard -->
+    <button type="button" class="back-btn m-2" [routerLink]="['/sessions']">
+      ← Torna alla Lista
+    </button>
+
+    <form (ngSubmit)="startScan()" class="new-session-form">
     
     <!-- URL da scansionare (sempre visibile) -->
     <div class="form-group m-2">
@@ -237,36 +235,31 @@
       <div class="section-body p-2">
         <fieldset class="form-group">
           <legend>Cookie personalizzati</legend>
-          <div
-            *ngFor="let c of cookies; let i = index"
-            class="dynamic-field"
-          >
+          <div *ngFor="let c of cookies; let i = index; trackBy: trackByIndex" class="dynamic-field">
             <input
               type="text"
               [name]="'cookie'+i"
-              [(ngModel)]="cookies[i]"
+              [(ngModel)]="c.value"
               placeholder="nome=valore"
             />
             <button type="button" (click)="removeCookie(i)">✖</button>
           </div>
           <button type="button" (click)="addCookie()">+ Aggiungi Cookie</button>
+          
         </fieldset>
 
         <fieldset class="form-group">
           <legend>Header personalizzati</legend>
-          <div
-            *ngFor="let h of headers; let i = index"
-            class="dynamic-field"
-          >
+          <div *ngFor="let h of headers; let i = index; trackBy: trackByIndex" class="dynamic-field">
             <input
               type="text"
               [name]="'header'+i"
-              [(ngModel)]="headers[i]"
+              [(ngModel)]="h.value"
               placeholder="Header: valore"
             />
             <button type="button" (click)="removeHeader(i)">✖</button>
           </div>
-          <button type="button" (click)="addHeader()">+ Aggiungi Header</button>
+          <button type="button" (click)="addHeader()">+ Aggiungi Header</button>          
         </fieldset>
       </div>
     </details>

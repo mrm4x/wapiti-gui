@@ -35,7 +35,8 @@ export class NewSessionComponent implements OnInit {
   authUser      = '';
   authPassword  = '';
   authMethod    = 'basic';
-  cookies: string[] = [];
+  //cookies: string[] = [];
+  cookies: { value: string }[] = [{ value: '' }];
   skipCrawl     = false;
   resumeCrawl   = false;
   flushAttacks  = false;
@@ -44,7 +45,8 @@ export class NewSessionComponent implements OnInit {
   tasks         = 10;
   timeout       = 5;
   scanForce     = 'normal';
-  headers: string[] = [];
+  headers: { value: string }[] = [{ value: '' }];
+  //headers: string[] = [];
   userAgent     = 'Wapiti/3.2.3';
   verifySsl     = false;
   colorOutput   = false;
@@ -76,10 +78,32 @@ export class NewSessionComponent implements OnInit {
     }
   }
 
+  /*
   addCookie() { this.cookies.push(''); }
   removeCookie(i: number) { this.cookies.splice(i, 1); }
   addHeader() { this.headers.push(''); }
   removeHeader(i: number) { this.headers.splice(i, 1); }
+  */
+
+  addCookie() {
+    this.cookies.push({ value: '' });
+  }
+  
+  removeCookie(index: number) {
+    this.cookies.splice(index, 1);
+  }
+  
+  addHeader() {
+    this.headers.push({ value: '' });
+  }
+  
+  removeHeader(index: number) {
+    this.headers.splice(index, 1);
+  }
+  
+  trackByIndex(index: number, item: any) {
+    return index;
+  }  
 
   startScan() {
     if (!this.targetUrl.trim()) {
@@ -106,7 +130,8 @@ export class NewSessionComponent implements OnInit {
     if (this.authUser)                 extra.push('--auth-user', this.authUser);
     if (this.authPassword)             extra.push('--auth-password', this.authPassword);
     if (this.authMethod !== 'basic')   extra.push('--auth-method', this.authMethod);
-    this.cookies.filter(c => c).forEach(c => extra.push('-C', c));
+    //this.cookies.filter(c => c).forEach(c => extra.push('-C', c));
+    this.cookies.filter(c => c.value.trim() !== '').forEach(c => extra.push('-C', c.value));
     if (this.skipCrawl)                extra.push('--skip-crawl');
     if (this.resumeCrawl)              extra.push('--resume-crawl');
     if (this.flushAttacks)             extra.push('--flush-attacks');
@@ -115,7 +140,8 @@ export class NewSessionComponent implements OnInit {
     if (this.tasks !== 10)             extra.push('--tasks', this.tasks.toString());
     if (this.timeout !== 5)            extra.push('-t', this.timeout.toString());
     if (this.scanForce !== 'normal')   extra.push('-S', this.scanForce);
-    this.headers.filter(h => h).forEach(h => extra.push('-H', h));
+    //this.headers.filter(h => h).forEach(h => extra.push('-H', h));
+    this.headers.filter(h => h.value.trim() !== '').forEach(h => extra.push('-H', h.value));
     if (this.userAgent)                extra.push('-A', this.userAgent);
     if (this.verifySsl)                extra.push('--verify-ssl', '1');
     if (this.colorOutput)              extra.push('--color');

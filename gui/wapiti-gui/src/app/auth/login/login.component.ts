@@ -32,7 +32,7 @@ export class LoginComponent implements OnInit {
 
       setTimeout(() => {
         this.router.navigate(['/sessions']);
-      }, 1500);
+      }, 1000);
     }
   }
 
@@ -58,7 +58,7 @@ export class LoginComponent implements OnInit {
 
             setTimeout(() => {
               this.router.navigate(['/sessions']);
-            }, 1500);
+            }, 1000);
           },
           error: (err) => {
             console.error("❌ Errore nel recupero dell'ID utente:", err);
