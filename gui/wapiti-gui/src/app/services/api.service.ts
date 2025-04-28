@@ -104,5 +104,12 @@ export class ApiService {
     );
   }
 
+  archiveSession(sessionId: string) {
+    return this.http.put(`${this.apiUrl}/sessions/${sessionId}/archive`, {});
+  }
+  
+  restoreSession(sessionId: string) {
+    return this.http.put(`${this.apiUrl}/sessions/${sessionId}/restore`, {});
+  }  
 
 }

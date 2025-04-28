@@ -25,7 +25,7 @@ export class SessionListComponent {
   ngOnInit(): void {
     this.loadSessions();
 
-    // Ascolta l’evento dal server e aggiorna solo la sessione modificata
+    // Ascolta aggiornamenti socket
     this.socketSv.onSessionUpdated().subscribe(({ sessionId }) => {
       this.apiService.getSessionById(sessionId).subscribe({
         next: updated => {
@@ -39,21 +39,11 @@ export class SessionListComponent {
     });
   }
 
-  // ✅ Metodo per visualizzare i dettagli della sessione
-  viewDetails(sessionId: string): void {
-    this.router.navigate(['/sessions', sessionId]);
-  }
-  
-  // 🔹 Metodo per navigare alla pagina di creazione della sessione
-  goToNewSession(): void {
-    this.router.navigate(['/sessions/new']);
-  }
-
-  // ✅ Metodo per caricare la lista delle sessioni
+  // ✅ Carica solo sessioni non archiviate
   loadSessions(): void {
     this.apiService.getSessions().subscribe({
       next: (data) => {
-        this.sessions = data;
+        this.sessions = data.filter((s: any) => !s.archived);
       },
       error: (err) => {
         console.error("❌ Errore nel recupero delle sessioni:", err);
@@ -61,7 +51,17 @@ export class SessionListComponent {
     });
   }
 
-  // ✅ Metodo per eliminare una sessione
+  // 🔹 Visualizza dettagli
+  viewDetails(sessionId: string): void {
+    this.router.navigate(['/sessions', sessionId], { state: { fromArchives: false } });
+  }
+
+  // 🔹 Crea nuova sessione
+  goToNewSession(): void {
+    this.router.navigate(['/sessions/new']);
+  }
+
+  // ✅ Elimina una sessione
   deleteSession(sessionId: string): void {
     if (!confirm('Sei sicuro di voler eliminare questa sessione?')) {
       return;
@@ -79,7 +79,25 @@ export class SessionListComponent {
     });
   }
 
-  // ▶ Mostra in modal il contenuto del log
+  // ✅ Archivia una sessione
+  archiveSession(sessionId: string): void {
+    if (!confirm('Vuoi davvero archiviare questa sessione?')) {
+      return;
+    }
+
+    this.apiService.archiveSession(sessionId).subscribe({
+      next: () => {
+        alert('✅ Sessione archiviata con successo!');
+        this.loadSessions(); // ricarica la lista filtrando
+      },
+      error: (err) => {
+        console.error('❌ Errore nell\'archiviazione della sessione:', err);
+        alert('❌ Errore nell\'archiviazione della sessione.');
+      }
+    });
+  }
+
+  // ▶ Modal log
   showLog(sessionId: string): void {
     this.apiService.getLogContent(sessionId).subscribe({
       next: (txt) => {
@@ -92,16 +110,15 @@ export class SessionListComponent {
     });
   }
 
-  // ▶ Mostra in modal il contenuto del JSON di risultato
+  // ▶ Modal risultato
   showResult(sessionId: string): void {
     this.apiService.getResultContent(sessionId).subscribe({
       next: (txt) => {
         let content = txt;
-        // se è JSON, prova a formattarlo bene
         try {
           content = JSON.stringify(JSON.parse(txt), null, 2);
         } catch {
-          // non è JSON valido, lascialo così com'è
+          // non è JSON, lascia il testo così
         }
         this.selectedTitle   = `Esito sessione ${sessionId}`;
         this.selectedContent = content;
@@ -112,7 +129,7 @@ export class SessionListComponent {
     });
   }
 
-  // ▶ Chiude il modal
+  // ▶ Chiudi il modal
   closeModal(): void {
     this.selectedContent = null;
     this.selectedTitle   = null;

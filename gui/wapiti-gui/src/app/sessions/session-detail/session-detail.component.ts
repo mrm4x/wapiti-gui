@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
@@ -10,7 +10,7 @@ import { SocketService } from '../../services/socket.service';
   templateUrl: './session-detail.component.html',
   styleUrls: ['./session-detail.component.scss'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, RouterLink] 
 })
 export class SessionDetailComponent {
   private route      = inject(ActivatedRoute);
@@ -19,13 +19,18 @@ export class SessionDetailComponent {
   private socketSv   = inject(SocketService);
 
   session: any = null;
+  fromArchives = false;
+  loading = true;
 
-  // Carica i dettagli e imposta il listener per gli update
   async ngOnInit(): Promise<void> {
     const sessionId = this.route.snapshot.paramMap.get('sessionId')!;
-    await this.loadDetail(sessionId);
 
-    // Se arriva un update per questa sessione, ricarichiamo i dettagli
+    this.loading = true;
+    await this.loadDetail(sessionId);
+    this.loading = false;
+
+    this.fromArchives = history.state?.fromArchives || false;
+
     this.socketSv.onSessionUpdated().subscribe(({ sessionId: updatedId }) => {
       if (updatedId === sessionId) {
         this.loadDetail(sessionId);
@@ -33,7 +38,6 @@ export class SessionDetailComponent {
     });
   }
 
-  // Metodo centrale per recuperare il dettaglio sessione
   private async loadDetail(sessionId: string): Promise<void> {
     try {
       this.session = await firstValueFrom(
@@ -45,10 +49,13 @@ export class SessionDetailComponent {
   }
 
   goBack(): void {
-    this.router.navigate(['/sessions']);
+    if (this.fromArchives) {
+      this.router.navigate(['/sessions/archives']);
+    } else {
+      this.router.navigate(['/sessions']);
+    }
   }
 
-  // Download del log
   async onDownloadLog(): Promise<void> {
     try {
       const blob = await firstValueFrom(
@@ -65,7 +72,6 @@ export class SessionDetailComponent {
     }
   }
 
-  // Download del JSON di output
   async onDownloadResult(): Promise<void> {
     try {
       const blob = await firstValueFrom(

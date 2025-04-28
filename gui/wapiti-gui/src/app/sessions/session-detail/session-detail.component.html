@@ -1,67 +1,86 @@
-<div *ngIf="session; else loading" class="container p-2">
-
-  <h2 class="m-2">Dettagli della Scansione</h2>
-
-  <button (click)="goBack()" class="m-2">← Torna alla Lista</button>
-
-  <table class="m-2">
-    <tr>
-      <td><strong>ID Sessione:</strong></td>
-      <td>{{ session.sessionId }}</td>
-    </tr>
-    <tr>
-      <td><strong>URL Target:</strong></td>
-      <td>{{ session.targetUrl }}</td>
-    </tr>
-    <tr>
-      <td><strong>Stato:</strong></td>
-      <td>{{ session.status }}</td>
-    </tr>
-    <tr>
-      <td><strong>Process PID:</strong></td>
-      <td>{{ session.processPid || 'N/A' }}</td>
-    </tr>
-    <tr>
-      <td><strong>Log File:</strong></td>
-      <td>{{ session.logFilePath || 'N/A' }}</td>
-    </tr>
-    <tr>
-      <td><strong>Output File:</strong></td>
-      <td>{{ session.outputFile || 'N/A' }}</td>
-    </tr>
-    <tr>
-      <td><strong>Extra Parametri:</strong></td>
-      <td>{{ session.extraParams?.join(', ') || 'Nessuno' }}</td>
-    </tr>
-    <tr>
-      <td><strong>Creato il:</strong></td>
-      <td>{{ session.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
-    </tr>
-    <tr>
-      <td><strong>Ultimo aggiornamento:</strong></td>
-      <td>{{ session.updatedAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
-    </tr>
-  </table>
-
-  <!-- Download buttons solo a sessione completata -->
-  <div *ngIf="session.status === 'completed'" class="flex flex-center gap-1 m-2">
-    <button type="button" (click)="onDownloadLog()">📄 Scarica Log</button>
-    <button type="button" (click)="onDownloadResult()">🗂️ Scarica Esito</button>
-  </div>
-
-  <h3 class="m-2">Storia degli Stati</h3>
-  <ul class="m-2">
-    <li *ngFor="let entry of session.statusHistory">
-      {{ entry.timestamp | date:'dd/MM/yyyy HH:mm:ss' }} - <strong>{{ entry.status }}</strong>
-    </li>
-  </ul>
-
-  <h3 class="m-2">Output della scansione</h3>
-  <pre *ngIf="session.stdoutHistory?.length > 0" class="m-2">{{ session.stdoutHistory.join('\n') }}</pre>
-  <p *ngIf="!session.stdoutHistory?.length" class="m-2">Nessun output registrato.</p>
-
+<!-- Mostra spinner se loading attivo -->
+<div *ngIf="loading; else content" class="loading-container">
+  <div class="spinner"></div>
+  <p>⏳ Caricamento dettagli della sessione...</p>
 </div>
 
-<ng-template #loading>
-  <p class="m-2">Caricamento dettagli della sessione...</p>
+<!-- Se non loading -->
+<ng-template #content>
+  <div *ngIf="session; else noSession" class="container p-2">
+
+    <h2 class="m-2">Dettagli della Scansione</h2>
+
+    <nav class="breadcrumb m-2">
+      <a routerLink="/" class="breadcrumb-link">Home</a>
+      <span>›</span>
+      <a [routerLink]="fromArchives ? '/sessions/archives' : '/sessions'" class="breadcrumb-link">
+        {{ fromArchives ? 'Archivio' : 'Sessioni' }}
+      </a>
+      <span>›</span>
+      <span>Dettagli</span>
+    </nav>  
+
+    <button (click)="goBack()" class="m-2">← Torna alla Lista</button>
+
+    <table class="m-2">
+      <tr>
+        <td><strong>ID Sessione:</strong></td>
+        <td>{{ session.sessionId }}</td>
+      </tr>
+      <tr>
+        <td><strong>URL Target:</strong></td>
+        <td>{{ session.targetUrl }}</td>
+      </tr>
+      <tr>
+        <td><strong>Stato:</strong></td>
+        <td>{{ session.status }}</td>
+      </tr>
+      <tr>
+        <td><strong>Process PID:</strong></td>
+        <td>{{ session.processPid || 'N/A' }}</td>
+      </tr>
+      <tr>
+        <td><strong>Log File:</strong></td>
+        <td>{{ session.logFilePath || 'N/A' }}</td>
+      </tr>
+      <tr>
+        <td><strong>Output File:</strong></td>
+        <td>{{ session.outputFile || 'N/A' }}</td>
+      </tr>
+      <tr>
+        <td><strong>Extra Parametri:</strong></td>
+        <td>{{ session.extraParams?.join(', ') || 'Nessuno' }}</td>
+      </tr>
+      <tr>
+        <td><strong>Creato il:</strong></td>
+        <td>{{ session.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+      </tr>
+      <tr>
+        <td><strong>Ultimo aggiornamento:</strong></td>
+        <td>{{ session.updatedAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+      </tr>
+    </table>
+
+    <!-- Bottoni download solo se completata -->
+    <div *ngIf="session.status === 'completed'" class="flex flex-center gap-1 m-2">
+      <button type="button" (click)="onDownloadLog()">📄 Scarica Log</button>
+      <button type="button" (click)="onDownloadResult()">🗂️ Scarica Esito</button>
+    </div>
+
+    <h3 class="m-2">Storia degli Stati</h3>
+    <ul class="m-2">
+      <li *ngFor="let entry of session.statusHistory">
+        {{ entry.timestamp | date:'dd/MM/yyyy HH:mm:ss' }} - <strong>{{ entry.status }}</strong>
+      </li>
+    </ul>
+
+    <h3 class="m-2">Output della scansione</h3>
+    <pre *ngIf="session.stdoutHistory?.length > 0" class="m-2">{{ session.stdoutHistory.join('\n') }}</pre>
+    <p *ngIf="!session.stdoutHistory?.length" class="m-2">Nessun output registrato.</p>
+
+  </div>
+
+  <ng-template #noSession>
+    <p class="m-2">❌ Sessione non trovata.</p>
+  </ng-template>
 </ng-template>

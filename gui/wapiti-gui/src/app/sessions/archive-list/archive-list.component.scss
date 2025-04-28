@@ -1,0 +1,41 @@
+.container {
+  padding: 1rem;
+}
+
+.session-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  th {
+    background-color: #5f7a8a;
+    color: white;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+}

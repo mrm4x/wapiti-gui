@@ -18,6 +18,7 @@ const sessionSchema = new mongoose.Schema({
     enum: ['pending', 'running', 'waiting', 'waiting-for-input', 'completed', 'failed', 'out-of-time'], 
     default: 'pending' 
   },
+  archived: { type: Boolean, default: false },
   processPid: { type: Number, default: null }, // ✅ Salva il PID del processo Wapiti
   logFilePath: { type: String, default: null }, // ✅ Percorso file di log della scansione
   expectedInput: { type: String, default: null }, // ✅ Input richiesto da Wapiti

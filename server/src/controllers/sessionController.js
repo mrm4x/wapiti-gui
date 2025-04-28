@@ -330,3 +330,35 @@ exports.downloadResult = async (req, res) => {
 
   res.download(resultPath, `session-${sessionId}.json`);
 };
+
+// Archivia una sessione
+exports.archiveSession = async (req, res) => {
+  try {
+    const session = await Session.findOneAndUpdate(
+      { sessionId: req.params.sessionId }, // cerca per campo sessionId
+      { archived: true },
+      { new: true }
+    );
+    if (!session) return res.status(404).json({ message: 'Session not found' });
+    res.json(session);
+  } catch (error) {
+    console.error('Errore archiviazione:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Ripristina una sessione
+exports.restoreSession = async (req, res) => {
+  try {
+    const session = await Session.findOneAndUpdate(
+      { sessionId: req.params.sessionId },
+      { archived: false },
+      { new: true }
+    );
+    if (!session) return res.status(404).json({ message: 'Session not found' });
+    res.json(session);
+  } catch (error) {
+    console.error('Errore ripristino:', error);
+    res.status(500).json({ message: error.message });
+  }
+};

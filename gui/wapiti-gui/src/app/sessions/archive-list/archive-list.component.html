@@ -1,0 +1,46 @@
+<div class="container p-2">
+
+  <h2 class="m-2">Archivio delle Sessioni</h2>
+
+  <table *ngIf="sessions.length > 0; else noSessions" class="m-2 session-table">
+    <thead>
+      <tr>
+        <th>ID Database</th>
+        <th>ID Sessione</th>
+        <th>Target</th>
+        <th>Stato</th>
+        <th>Azioni</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let session of sessions">
+        <td>{{ session._id }}</td>
+        <td>{{ session.sessionId }}</td>
+        <td>{{ session.targetUrl }}</td>
+        <td>{{ session.status }}</td>
+        <td>
+          <button (click)="viewDetails(session.sessionId)">Dettagli</button>
+          <button (click)="restoreSession(session.sessionId)">♻️ Ripristina</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #noSessions>
+    <p class="m-2 text-center">📦 Non ci sono sessioni archiviate.</p>
+  </ng-template>
+
+  <!-- Modal per mostrare Log o Esito -->
+  <div *ngIf="selectedContent" class="modal-overlay">
+    <div class="modal">
+      <header class="modal-header">
+        <h3>{{ selectedTitle }}</h3>
+        <button class="close-btn" (click)="closeModal()">✖</button>
+      </header>
+      <section class="modal-body">
+        <pre>{{ selectedContent }}</pre>
+      </section>
+    </div>
+  </div>
+
+</div>
