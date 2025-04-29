@@ -5,19 +5,19 @@
   <table *ngIf="sessions.length > 0; else noSessions" class="m-2 session-table">
     <thead>
       <tr>
-        <th>ID Database</th>
         <th>ID Sessione</th>
         <th>Target</th>
         <th>Stato</th>
+        <th>Data Creazione</th>        
         <th>Azioni</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let session of sessions">
-        <td>{{ session._id }}</td>
         <td>{{ session.sessionId }}</td>
         <td>{{ session.targetUrl }}</td>
         <td>{{ session.status }}</td>
+        <td>{{ session.createdAt | date:'short' }}</td>
         <td>
           <button (click)="viewDetails(session.sessionId)">Dettagli</button>
           <button (click)="restoreSession(session.sessionId)">♻️ Ripristina</button>

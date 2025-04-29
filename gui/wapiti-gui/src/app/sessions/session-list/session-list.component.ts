@@ -1,137 +1,129 @@
 import { Component, inject } from '@angular/core';
-import { ApiService } from '../../services/api.service';
-import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule }       from '@angular/common';
+import { Router }             from '@angular/router';
+
+import { ApiService }   from '../../services/api.service';
 import { SocketService } from '../../services/socket.service';
 
 @Component({
-  selector: 'app-session-list',
+  selector   : 'app-session-list',
+  standalone : true,
+  imports    : [CommonModule],
   templateUrl: './session-list.component.html',
-  styleUrls: ['./session-list.component.scss'],
-  standalone: true,
-  imports: [CommonModule]
+  styleUrls  : ['./session-list.component.scss']
 })
 export class SessionListComponent {
   private apiService = inject(ApiService);
   private router     = inject(Router);
   private socketSv   = inject(SocketService);
 
+  /* ---------- lista ----------- */
   sessions: any[] = [];
 
-  // ▶ Proprietà per il modal
-  selectedTitle:   string | null = null;
-  selectedContent: string | null = null;
+  /* ---------- modal ----------- */
+  selectedTitle   : string | null = null;
+  selectedContent : string | null = null;
+  modalKind: 'log' | 'result' | null = null;   // quale file mostra
+  modalSessionId = '';                         // id sessione corrente
 
+  /* ---------- lifecycle ----------- */
   ngOnInit(): void {
     this.loadSessions();
 
-    // Ascolta aggiornamenti socket
     this.socketSv.onSessionUpdated().subscribe(({ sessionId }) => {
       this.apiService.getSessionById(sessionId).subscribe({
-        next: updated => {
-          const idx = this.sessions.findIndex(s => s.sessionId === sessionId);
-          if (idx > -1) {
-            this.sessions[idx] = updated;
-          }
+        next : updated => {
+          const i = this.sessions.findIndex(s => s.sessionId === sessionId);
+          if (i > -1) this.sessions[i] = updated;
         },
-        error: err => console.error('❌ Errore nel refresh della sessione:', err)
+        error: err => console.error('❌ refresh sessione', err)
       });
     });
   }
 
-  // ✅ Carica solo sessioni non archiviate
+  /* ---------- api calls ----------- */
   loadSessions(): void {
     this.apiService.getSessions().subscribe({
-      next: (data) => {
-        this.sessions = data.filter((s: any) => !s.archived);
-      },
-      error: (err) => {
-        console.error("❌ Errore nel recupero delle sessioni:", err);
-      }
+      next : data => (this.sessions = data.filter((s: any) => !s.archived)),
+      error: err  => console.error('❌ get sessions', err)
     });
   }
 
-  // 🔹 Visualizza dettagli
-  viewDetails(sessionId: string): void {
-    this.router.navigate(['/sessions', sessionId], { state: { fromArchives: false } });
-  }
+  /* ---------- navigazione ----------- */
+  viewDetails(id: string): void      { this.router.navigate(['/sessions', id]); }
+  goToNewSession(): void             { this.router.navigate(['/sessions/new']); }
 
-  // 🔹 Crea nuova sessione
-  goToNewSession(): void {
-    this.router.navigate(['/sessions/new']);
-  }
-
-  // ✅ Elimina una sessione
-  deleteSession(sessionId: string): void {
-    if (!confirm('Sei sicuro di voler eliminare questa sessione?')) {
-      return;
-    }
-
-    this.apiService.deleteSession(sessionId).subscribe({
-      next: () => {
-        alert('✅ Sessione eliminata con successo!');
-        this.loadSessions();
-      },
-      error: (err) => {
-        console.error('❌ Errore nella cancellazione della sessione:', err);
-        alert('❌ Errore nella cancellazione della sessione.');
-      }
+  /* ---------- azioni record ----------- */
+  deleteSession(id: string): void {
+    if (!confirm('Eliminare la sessione?')) return;
+    this.apiService.deleteSession(id).subscribe({
+      next : () => this.loadSessions(),
+      error: err => console.error('❌ delete', err)
     });
   }
 
-  // ✅ Archivia una sessione
-  archiveSession(sessionId: string): void {
-    if (!confirm('Vuoi davvero archiviare questa sessione?')) {
-      return;
-    }
-
-    this.apiService.archiveSession(sessionId).subscribe({
-      next: () => {
-        alert('✅ Sessione archiviata con successo!');
-        this.loadSessions(); // ricarica la lista filtrando
-      },
-      error: (err) => {
-        console.error('❌ Errore nell\'archiviazione della sessione:', err);
-        alert('❌ Errore nell\'archiviazione della sessione.');
-      }
+  archiveSession(id: string): void {
+    if (!confirm('Archiviare la sessione?')) return;
+    this.apiService.archiveSession(id).subscribe({
+      next : () => this.loadSessions(),
+      error: err => console.error('❌ archive', err)
     });
   }
 
-  // ▶ Modal log
-  showLog(sessionId: string): void {
-    this.apiService.getLogContent(sessionId).subscribe({
-      next: (txt) => {
-        this.selectedTitle   = `Log sessione ${sessionId}`;
+  /* ---------- modal LOG ----------- */
+  showLog(id: string): void {
+    this.apiService.getLogContent(id).subscribe({
+      next : txt => {
+        this.selectedTitle   = `Log sessione ${id}`;
         this.selectedContent = txt;
+        this.modalKind       = 'log';
+        this.modalSessionId  = id;
       },
-      error: (err) => {
-        console.error('❌ Errore fetch log:', err);
-      }
+      error: err => console.error('❌ fetch log', err)
     });
   }
 
-  // ▶ Modal risultato
-  showResult(sessionId: string): void {
-    this.apiService.getResultContent(sessionId).subscribe({
-      next: (txt) => {
-        let content = txt;
-        try {
-          content = JSON.stringify(JSON.parse(txt), null, 2);
-        } catch {
-          // non è JSON, lascia il testo così
-        }
-        this.selectedTitle   = `Esito sessione ${sessionId}`;
-        this.selectedContent = content;
+  /* ---------- modal ESITO ----------- */
+  showResult(id: string): void {
+    this.apiService.getResultContent(id).subscribe({
+      next : txt => {
+        try { txt = JSON.stringify(JSON.parse(txt), null, 2); } catch {}
+        this.selectedTitle   = `Esito sessione ${id}`;
+        this.selectedContent = txt;
+        this.modalKind       = 'result';
+        this.modalSessionId  = id;
       },
-      error: (err) => {
-        console.error('❌ Errore fetch result:', err);
-      }
+      error: err => console.error('❌ fetch result', err)
     });
   }
 
-  // ▶ Chiudi il modal
+  /* ---------- download dall’header del modal ----------- */
+  downloadCurrent(): void {
+    if (!this.modalKind) return;
+
+    const obs = this.modalKind === 'log'
+      ? this.apiService.downloadLog(this.modalSessionId)
+      : this.apiService.downloadResult(this.modalSessionId);
+
+    obs.subscribe({
+      next : blob => {
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = this.modalKind === 'log'
+          ? `session-${this.modalSessionId}.log`
+          : `session-${this.modalSessionId}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: err => console.error('❌ download', err)
+    });
+  }
+
+  /* ---------- chiusura modal ----------- */
   closeModal(): void {
-    this.selectedContent = null;
-    this.selectedTitle   = null;
+    this.selectedTitle = this.selectedContent = null;
+    this.modalKind = null;
+    this.modalSessionId = '';
   }
 }

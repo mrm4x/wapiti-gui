@@ -20,20 +20,21 @@
       <tr *ngFor="let session of sessions">
         <td>{{ session.sessionId }}</td>
         <td>{{ session.targetUrl }}</td>
-        <td
-          [ngClass]="
-            'status-' +
-            (session.status || '')
-              .toLowerCase()
-              .split(' ')
-              .join('-')
-          "
-        >
+
+        <td [ngClass]="
+              'status-' +
+              (session.status || '')
+                .toLowerCase()
+                .split(' ')
+                .join('-')">
           {{ session.status }}
-        </td>        
+        </td>
+
         <td>{{ session.createdAt | date:'short' }}</td>
+
         <td class="flex actions-cell p-1 gap-1">
           <button (click)="viewDetails(session.sessionId)">Dettagli</button>
+
           <ng-container *ngIf="session.status === 'completed'">
             <button (click)="showLog(session.sessionId)">📄 Log</button>
             <button (click)="showResult(session.sessionId)">🗂️ Esito</button>
@@ -49,13 +50,27 @@
     <p class="m-2">Nessuna sessione trovata.</p>
   </ng-template>
 
-  <!-- Modal per anteprima Log / Esito -->
+  <!-- Modal Log / Esito -->
   <div *ngIf="selectedContent" class="modal-overlay">
     <div class="modal">
       <header class="modal-header">
-        <h3>{{ selectedTitle }}</h3>
+        <!-- blocco sinistro: titolo + download -->
+        <div class="header-left">
+          <h3 class="modal-title">{{ selectedTitle }}</h3>
+
+          <!-- icona download -->
+          <button *ngIf="modalKind"
+                  class="icon-btn dl-btn"
+                  aria-label="Download"
+                  (click)="downloadCurrent()">
+            <i class="bi bi-download"></i>
+          </button>
+        </div>
+
+        <!-- pulsante chiusura all’estrema destra -->
         <button class="close-btn" (click)="closeModal()">✖</button>
       </header>
+
       <section class="modal-body">
         <pre>{{ selectedContent }}</pre>
       </section>

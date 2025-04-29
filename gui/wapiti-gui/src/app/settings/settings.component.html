@@ -3,7 +3,7 @@
 
   <form *ngIf="settings" (ngSubmit)="saveSettings()">
     <!-- loop dinamico sui campi del JSON -->
-    <div *ngFor="let entry of settings | keyvalue" class="form-group m-2">
+    <div *ngFor="let entry of settings | keyvalue" class="form-group m-2 setting-fields">
       <label>{{ entry.key }}</label>
 
       <!-- input generico -->

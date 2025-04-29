@@ -25,6 +25,22 @@
   border-bottom: 1px solid #ddd;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: .5rem;          
+}
+
+.dl-btn {
+  font-size: 1.6rem;
+  width : 2.2rem;        
+  height: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .4rem;
+}
+
 .close-btn {
   background: transparent;
   border: none;
