@@ -1,0 +1,11 @@
+{
+  "scanTimeout": 300,
+  "maxParallelScans": 5,
+  "defaultScanDepth": 2,
+  "defaultFormat": "json",
+  "useTor": false,
+  "proxyUrl": "",
+  "userAgent": "Wapiti-Scanner-GUI",
+  "scanDir": "scans",
+  "logDir": "logs"
+}

@@ -10,12 +10,13 @@ const mongoose = require('mongoose');
 const stripAnsi = require('strip-ansi');
 const Session = require('../models/sessionModel');
 const logger = require('../utils/logger');
+const config = require('../config');
 
 require('dotenv').config();
 
 // ▸ Percorsi configurabili via .env
-const SCAN_DIR    = process.env.SCAN_DIR    || 'scans';
-const LOG_DIR     = process.env.LOG_DIR     || path.join(__dirname, '../../logs');
+const SCAN_DIR    = config.scanDir          || 'scans';
+const LOG_DIR     = config.LOG_DIR          || path.join(__dirname, '../../logs');
 const WAPITI_PATH = process.env.WAPITI_PATH || '/usr/bin/wapiti';
 const MONGO_URI   = process.env.MONGO_URI   || 'mongodb://localhost:27017/wapiti-db';
 

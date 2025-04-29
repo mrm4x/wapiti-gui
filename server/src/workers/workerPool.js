@@ -3,9 +3,11 @@ const os = require('os');
 const mongoose = require('mongoose');
 const Session = require('../models/sessionModel');
 const logger = require('../utils/logger');
+const config = require('../config');
 const { executeScan } = require('./scanWorker');
 
-const WORKER_COUNT = parseInt(process.env.WORKER_COUNT, 10) || os.cpus().length;
+//const WORKER_COUNT = parseInt(process.env.WORKER_COUNT, 10) || os.cpus().length;
+const WORKER_COUNT = parseInt(config.workerCount, 10) || os.cpus().length;
 const RETRY_DELAY = 5000; // 5 secondi tra un retry e l'altro
 
 async function ensureMongoConnection() {

@@ -1,4 +1,4 @@
-require('dotenv').config();
+//require('dotenv').config();
 const express = require('express');
 const http    = require('http');
 const { Server } = require('socket.io');
@@ -8,17 +8,20 @@ const logger  = require('./utils/logger');
 const { spawn } = require('child_process');
 const path    = require('path');
 require('./config/mongoConfig');
+const config  = require('./config');
 
 const authRoutes      = require('./routes/authRoutes');
 const sessionRoutes   = require('./routes/sessionRoutes');
 const userRoutes      = require('./routes/userRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
 const { protect }     = require('./middleware/authMiddleware');
+const settingsRoutes  = require('./routes/settingsRoutes');
+
 
 const Session = require('./models/sessionModel');
 
-const MAX_RESTARTS = process.env.MAX_WORKER_RESTART || 5;
-const PORT         = process.env.PORT || 3000;
+const MAX_RESTARTS = config.workerMaxRestarts || 5;
+const PORT         = config.port || 3000;
 
 // ─── App & Socket.IO Setup ────────────────────────────────────────────────────
 const app    = express();
@@ -39,6 +42,7 @@ app.use(express.json());
 app.use('/api', authRoutes);
 app.use('/api', sessionRoutes);
 app.use('/api', userRoutes);
+app.use('/api', settingsRoutes);
 app.use('/api', protect, protectedRoutes);
 
 // ─── Global Error Handler ──────────────────────────────────────────────────────

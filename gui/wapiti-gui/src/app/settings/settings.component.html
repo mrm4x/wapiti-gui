@@ -1,1 +1,24 @@
-<p>settings works!</p>
+<div class="container p-2">
+  <h2 class="m-2">Impostazioni</h2>
+
+  <form *ngIf="settings" (ngSubmit)="saveSettings()">
+    <!-- loop dinamico sui campi del JSON -->
+    <div *ngFor="let entry of settings | keyvalue" class="form-group m-2">
+      <label>{{ entry.key }}</label>
+
+      <!-- input generico -->
+      <input
+        #inp
+        type="text"
+        class="form-control"
+        [value]="getSettingValue(entry.key)"
+        (input)="onInputChange(entry.key, inp.value)"
+        [name]="entry.key"
+      />
+    </div>
+
+    <div class="form-actions m-2">
+      <button type="submit">💾 Salva impostazioni</button>
+    </div>
+  </form>
+</div>

@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const config = require('../config');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+const JWT_SECRET = config.jwtSecret || 'supersecretkey';
+const JWT_EXPIRES_IN = config.jwtExpiresIn || '1h';
 
 /**
  * Middleware per proteggere le API con JWT
