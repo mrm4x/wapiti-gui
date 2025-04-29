@@ -73,6 +73,8 @@
         {{ entry.timestamp | date:'dd/MM/yyyy HH:mm:ss' }} - <strong>{{ entry.status }}</strong>
       </li>
     </ul>
+    
+    <app-note-list [sessionId]="session._id"></app-note-list>
 
     <h3 class="m-2">Output della scansione</h3>
     <pre *ngIf="session.stdoutHistory?.length > 0" class="m-2">{{ session.stdoutHistory.join('\n') }}</pre>

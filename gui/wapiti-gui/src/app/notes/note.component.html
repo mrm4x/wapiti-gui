@@ -1,0 +1,15 @@
+<li class="note">
+  <div class="note-meta">
+    <span>{{ note.createdAt | date:'short' }}</span>
+
+    <button class="icon-btn small"
+            (click)="delete.emit(note)"
+            aria-label="Elimina">
+      <i class="bi bi-trash"></i>
+    </button>
+  </div>
+
+  <textarea [(ngModel)]="editable"
+            (blur)="saveIfChanged()"
+            rows="2"></textarea>
+</li>

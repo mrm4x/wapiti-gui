@@ -4,6 +4,7 @@ import { LogoutComponent } from './auth/logout/logout.component';
 import { SessionListComponent } from './sessions/session-list/session-list.component';
 import { SessionDetailComponent } from './sessions/session-detail/session-detail.component';
 import { NewSessionComponent } from './sessions/new-session/new-session.component';
+import { NoteListPageComponent } from './notes/note-list-page.component';
 import { SettingsComponent } from './settings/settings.component';
 import { authGuard } from './auth/auth.guard';
 
@@ -20,5 +21,6 @@ export const appRoutes: Routes = [
     canActivate: [authGuard]
   },
   { path: 'sessions/:sessionId', component: SessionDetailComponent, canActivate: [authGuard] },
-  { path: 'settings', component: SettingsComponent, canActivate: [authGuard] }
+  { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
+  { path: 'notes', component: NoteListPageComponent, canActivate: [authGuard] }
 ];

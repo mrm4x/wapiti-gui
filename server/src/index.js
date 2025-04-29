@@ -16,6 +16,7 @@ const userRoutes      = require('./routes/userRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
 const { protect }     = require('./middleware/authMiddleware');
 const settingsRoutes  = require('./routes/settingsRoutes');
+const noteRoutes = require('./routes/noteRoutes');
 
 
 const Session = require('./models/sessionModel');
@@ -43,6 +44,7 @@ app.use('/api', authRoutes);
 app.use('/api', sessionRoutes);
 app.use('/api', userRoutes);
 app.use('/api', settingsRoutes);
+app.use('/api', noteRoutes);
 app.use('/api', protect, protectedRoutes);
 
 // ─── Global Error Handler ──────────────────────────────────────────────────────

@@ -1,0 +1,52 @@
+/* ---------- form nuova nota ---------- */
+.note-add textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: .4rem;
+}
+.note-add button   { margin-top: .25rem; }
+
+/* ---------- tabella note ---------- */
+.note-table      { width: 100%; border-collapse: collapse; }
+.note-table tr   { height: 100%; }
+
+/* zebra row: pari bianco, dispari grigio chiaro */
+.note-table tr:nth-child(odd)  { background: #fff;     }
+.note-table tr:nth-child(even) { background: #f5f7fa; }
+
+/* colonne -------------------------------------------------- */
+.date-col  {
+  width: 1%;             /* si adatta al contenuto */
+  white-space: nowrap;
+  font-size: .85rem;
+  color:#555;
+  padding: .25rem .5rem;
+}
+
+.text-col  { width: 100%; padding: .25rem .5rem; }  /* occupa il resto */
+
+.icon-col  {
+  width: 1%;             /* solo lo spazio dell’icona */
+  text-align: center;
+  padding: 0 .5rem;
+}
+
+/* testo statico + editing */
+.note-text           { white-space: pre-wrap; cursor: pointer; }
+.note-text.editing   { display: none; }
+
+.text-col textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  padding: .4rem;
+  font-family: inherit;
+  font-size: .9rem;
+}
+
+/* ---------- icona delete ---------- */
+.icon-btn.small   { font-size: 1.2rem; padding: 0; }
+.icon-btn.small i { pointer-events: none; }

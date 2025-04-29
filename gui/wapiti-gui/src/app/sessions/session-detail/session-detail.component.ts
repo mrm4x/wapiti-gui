@@ -4,13 +4,14 @@ import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { SocketService } from '../../services/socket.service';
+import { NoteListComponent } from '../../notes/note-list.component';
 
 @Component({
   selector: 'app-session-detail',
   templateUrl: './session-detail.component.html',
   styleUrls: ['./session-detail.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterLink] 
+  imports: [CommonModule, RouterLink, NoteListComponent] 
 })
 export class SessionDetailComponent {
   private route      = inject(ActivatedRoute);

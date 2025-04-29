@@ -1,0 +1,52 @@
+<h3 class="m-2">Note</h3>
+
+<!-- nuova nota -->
+<div class="note-add m-2">
+  <textarea [(ngModel)]="newText" rows="2"
+            placeholder="Scrivi nuova nota…" [disabled]="!sessionId"></textarea>
+  <button (click)="add()" [disabled]="!sessionId">Aggiungi</button>
+</div>
+
+<!-- tabella note -->
+<table class="note-table m-2" *ngIf="notes.length; else empty">
+  <tbody>
+    <tr *ngFor="let n of notes; let i = index"
+        [class.alt]="i % 2 === 1">
+
+      <!-- data -->
+      <td class="date-col">
+        {{ n.createdAt | date:'dd/MM/yyyy HH:mm' }}
+      </td>
+
+      <!-- testo (inline-edit) -->
+      <td class="text-col">
+        <!-- div statico -->
+        <div class="note-text"
+             [class.editing]="editingId === n._id"
+             (click)="startEdit(n)"
+             *ngIf="editingId !== n._id">
+          {{ n.text }}
+        </div>
+
+        <!-- textarea in editing -->
+        <textarea *ngIf="editingId === n._id"
+                  [(ngModel)]="editable"
+                  (blur)="saveEdit(n)"
+                  rows="2"></textarea>
+      </td>
+
+      <!-- icona delete -->
+      <td class="icon-col">
+        <button class="icon-btn small"
+                (click)="onDelete(n)"
+                aria-label="Elimina">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<ng-template #empty>
+  <p class="m-2">Nessuna nota.</p>
+</ng-template>
