@@ -1,15 +1,15 @@
 import { inject } from '@angular/core';
 import { HttpInterceptorFn } from '@angular/common/http';
 import { AuthService } from './auth.service';
+import { Router } from '@angular/router';
+import { catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
+  const router = inject(Router);
 
-  // ✅ Recupera il token da localStorage (e non solo dalla classe)
-const token = localStorage.getItem('jwt_token'); // 🔹 Recupera sempre con 'jwt_token'
-
-  console.log('🔹 [authInterceptor] Interceptor eseguito!');
-  console.log('🔹 [authInterceptor] Token recuperato:', token);
+  const token = localStorage.getItem('jwt_token');
 
   if (token) {
     req = req.clone({
@@ -17,11 +17,16 @@ const token = localStorage.getItem('jwt_token'); // 🔹 Recupera sempre con 'jw
         Authorization: `Bearer ${token}`
       }
     });
-
-    console.log('✅ [authInterceptor] Aggiunto token all’header Authorization');
-  } else {
-    console.warn('⚠️ [authInterceptor] Nessun token presente, richiesta inviata senza autenticazione');
   }
 
-  return next(req);
+  return next(req).pipe(
+    catchError(err => {
+      if (err.status === 401) {
+        console.warn('🔴 Token non valido o scaduto. Logout ed eseguo redirect.');
+        authService.logout();        // 👈 rimuove token
+        router.navigate(['/login']); // 👈 redirect automatico
+      }
+      return throwError(() => err);
+    })
+  );
 };
