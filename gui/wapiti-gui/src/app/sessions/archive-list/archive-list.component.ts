@@ -47,6 +47,15 @@ export class ArchiveListComponent {
     });
   }
 
+  /* ---------- azioni record ----------- */
+  deleteSession(id: string): void {
+    if (!confirm('Eliminare la sessione?')) return;
+    this.apiService.deleteSession(id).subscribe({
+      next : () => this.loadSessions(),
+      error: err => console.error('❌ delete', err)
+    });
+  }
+  
   viewDetails(sessionId: string): void {
     this.router.navigate(['/sessions', sessionId], { state: { fromArchives: true } });
   }

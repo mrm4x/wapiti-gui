@@ -13,4 +13,7 @@ router.post('/sessions/:sessionId/notes',  noteCtrl.createNote);
 router.put   ('/notes/:noteId',  noteCtrl.updateNote);
 router.delete('/notes/:noteId',  noteCtrl.deleteNote);
 
+/* all notes */
+router.get   ('/notes',  noteCtrl.getAllNotes);
+
 module.exports = router;

@@ -1,0 +1,18 @@
+.note-table      { width: 100%; border-collapse: collapse; }
+.note-table tr.alt { background: #f5f7fa; }
+td { padding: .5rem; vertical-align: top; }
+.session-link { color: #007bff; cursor: pointer; text-decoration: underline; }
+.session-col {
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: .85rem;
+}
+.session-header {
+  background: #ddd;
+  font-weight: bold;
+}
+
+.session-id-cell {
+  padding: 0.5rem;
+  font-size: 1rem;
+}

@@ -22,5 +22,11 @@ export const appRoutes: Routes = [
   },
   { path: 'sessions/:sessionId', component: SessionDetailComponent, canActivate: [authGuard] },
   { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
-  { path: 'notes', component: NoteListPageComponent, canActivate: [authGuard] }
+  { path: 'notes', component: NoteListPageComponent, canActivate: [authGuard] },
+  {
+    path: 'notes/notes-list',
+    loadComponent: () => import('./notes/note-global-list/note-global-list.component').then(m => m.NoteGlobalListComponent),
+    canActivate: [authGuard]
+  }
+  
 ];

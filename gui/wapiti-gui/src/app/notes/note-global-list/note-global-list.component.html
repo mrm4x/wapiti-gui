@@ -1,0 +1,24 @@
+<div class="container p-2">
+  <h2 class="m-2">Tutte le Note</h2>
+
+  <table class="note-table m-2">
+    <tbody>
+      <ng-container *ngFor="let sessionId of sortedSessionIds()">
+        <tr class="session-header">
+          <td colspan="3" class="session-id-cell">
+            Sessione: 
+            <a [routerLink]="['/sessions', sessionIdMap[sessionId]]">
+              {{ sessionIdMap[sessionId] || '...' }}
+            </a>
+          </td>
+        </tr>
+
+        <tr *ngFor="let n of groupedNotes[sessionId]; let i = index" [class.alt]="i % 2 === 1">
+          <td class="date-col">{{ n.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td class="text-col">{{ n.text }}</td>
+          <td class="icon-col">–</td> <!-- oppure lascia vuoto, è sola lettura -->
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+</div>

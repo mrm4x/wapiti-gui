@@ -35,4 +35,8 @@ export class NoteService {
   deleteNote(id: string) {
     return this.http.delete(`${this.base}/notes/${id}`);
   }
+
+  getSessionIdFromObjectId(objectId: string) {
+    return this.http.get<{ sessionId: string }>(`${this.base}/sessions/by-objectid/${objectId}`);
+  }  
 }

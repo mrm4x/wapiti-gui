@@ -9,6 +9,17 @@ exports.getNotesBySession = async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'DB read error' }); }
 };
 
+/* GET /api/notes */
+exports.getAllNotes = async (req, res) => {
+  try {
+    const notes = await Note.find().sort({ createdAt: -1 });
+    res.json(notes);
+  } catch (err) {
+    console.error('Errore nel recupero note:', err);
+    res.status(500).json({ error: 'Errore recupero note' });
+  }
+};
+
 /* POST /api/sessions/:sessionId/notes */
 exports.createNote = async (req, res) => {
   try {

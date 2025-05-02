@@ -362,3 +362,20 @@ exports.restoreSession = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Recupero session_id basato sul object_id
+exports.getSessionIdFromObjectId = async (req, res) => {
+  const { objectId } = req.params;
+
+  try {
+    const session = await Session.findById(objectId);
+    if (!session) {
+      return res.status(404).json({ error: 'Sessione non trovata' });
+    }
+
+    res.json({ sessionId: session.sessionId });
+  } catch (err) {
+    console.error('Errore nel recupero sessionId:', err);
+    res.status(500).json({ error: 'Errore interno del server' });
+  }
+};
