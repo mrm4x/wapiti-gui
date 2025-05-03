@@ -48,6 +48,10 @@
         <td>{{ session.outputFile || 'N/A' }}</td>
       </tr>
       <tr>
+        <td><strong>Descrizione:</strong></td>
+        <td>{{ session.description || '—' }}</td>
+      </tr>      
+      <tr>
         <td><strong>Extra Parametri:</strong></td>
         <td>{{ session.extraParams?.join(', ') || 'Nessuno' }}</td>
       </tr>

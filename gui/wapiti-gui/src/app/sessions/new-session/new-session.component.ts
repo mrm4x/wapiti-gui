@@ -17,6 +17,7 @@ export class NewSessionComponent implements OnInit {
   private router     = inject(Router);
 
   // Utente e URL di base
+  description = '';
   userId    = '';
   targetUrl = '';
 
@@ -159,6 +160,7 @@ export class NewSessionComponent implements OnInit {
     const sessionData = {
       userId: this.userId,
       targetUrl: this.targetUrl,
+      description: this.description,
       extraParams: extra
     };
 

@@ -22,6 +22,18 @@
       />
     </div>
 
+    <!-- Campo descrizione -->
+    <div class="form-group m-2">
+      <label for="description">Descrizione:</label>
+      <textarea
+        id="description"
+        name="description"
+        [(ngModel)]="description"
+        rows="3"
+        placeholder="Inserisci una descrizione opzionale per la sessione"
+      ></textarea>
+    </div>
+
     <!-- Sezione: Impostazioni Base -->
     <details class="m-2">
       <summary><strong>Impostazioni Base</strong></summary>

@@ -15,7 +15,7 @@ const SCAN_DIR = process.env.SCAN_DIR || path.join(__dirname, '../../scans');
  */
 exports.startSession = async (req, res) => {
   try {
-    const { userId, targetUrl, extraParams } = req.body;
+    const { userId, targetUrl, extraParams, description } = req.body;
 
     logger.info(`📌 Received scan request: userId=${userId}, targetUrl=${targetUrl}, extraParams=${Array.isArray(extraParams) ? extraParams.join(' ') : 'None'}`);
 
@@ -54,6 +54,7 @@ exports.startSession = async (req, res) => {
       user: new mongoose.Types.ObjectId(userId),
       sessionId,
       targetUrl,
+      description,
       status: 'pending',
       extraParams: parsedExtraParams, // ✅ Memorizza solo parametri validi
       logFilePath, // ✅ Memorizza il percorso del file di log
