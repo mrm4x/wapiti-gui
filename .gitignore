@@ -24,3 +24,4 @@ server/sleepinput.sh
 server/testFile.js
 server/typescript
 server/debug/*
+mongo-data/*
